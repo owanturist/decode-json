@@ -5,5 +5,13 @@
   "main": "index.js",
   "repository": "git@github.com:owanturist/decode-json.git",
   "author": "Anton Ovechkin <owanturist@gmail.com>",
-  "license": "BSD-3-Clause"
+  "license": "BSD-3-Clause",
+  "husky": {
+    "hooks": {
+      "prepare-commit-msg": "./scripts/git-commit-message.sh $HUSKY_GIT_PARAMS"
+    }
+  },
+  "devDependencies": {
+    "husky": "^4.2.5"
+  }
 }
