@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.dev.json",
+  "compilerOptions": {
+    "sourceMap": true,
+    "declaration": true,
+    "outDir": "dist"
+  },
+  "include": ["./src/**/*.ts"]
+}

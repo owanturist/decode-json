@@ -6,12 +6,34 @@
   "repository": "git@github.com:owanturist/decode-json.git",
   "author": "Anton Ovechkin <owanturist@gmail.com>",
   "license": "BSD-3-Clause",
+  "scripts": {
+    "build": "tsc -p tsconfig.prod.json",
+    "lint": "eslint . --config=.eslintrc.prod.json --ext=js,ts",
+    "prettify": "prettier . --write"
+  },
   "husky": {
     "hooks": {
-      "prepare-commit-msg": "./scripts/git-commit-message.sh $HUSKY_GIT_PARAMS"
+      "prepare-commit-msg": "./scripts/git-commit-message.sh $HUSKY_GIT_PARAMS",
+      "pre-commit": "lint-staged && npm run build"
     }
   },
+  "lint-staged": {
+    "**/*.{js,ts,json,md}": [
+      "prettier --write"
+    ],
+    "**/*.{js,ts}": [
+      "eslint --config=.eslintrc.prod.json --fix"
+    ]
+  },
   "devDependencies": {
-    "husky": "^4.2.5"
+    "@typescript-eslint/eslint-plugin": "^3.10.1",
+    "@typescript-eslint/parser": "^3.10.1",
+    "eslint": "^7.7.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.2.13",
+    "prettier": "^2.1.1",
+    "typescript": "^4.0.2"
   }
 }
