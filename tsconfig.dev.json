@@ -8,8 +8,8 @@
     "removeComments": true,
     "importHelpers": true,
     "downlevelIteration": true,
-    "outDir": "/dev/null",
-    "baseUrl": "./src/",
+    "outDir": "build",
+    "baseUrl": "src",
 
     /* Strict Type-Checking Options */
     "strict": true, // noImplicitAny noImplicitThis alwaysStrict strictNullChecks strictFunctionTypes strictPropertyInitialization

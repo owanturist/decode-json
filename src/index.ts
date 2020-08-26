@@ -1,1 +1,1 @@
-export const test = { num: 1 }
+export const foo = { bar: 1 }
