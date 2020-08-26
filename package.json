@@ -1,0 +1,9 @@
+{
+  "name": "decode-json",
+  "version": "1.0.0",
+  "description": "Convert unknown JSON values to TypeScript safe structures",
+  "main": "index.js",
+  "repository": "git@github.com:owanturist/decode-json.git",
+  "author": "Anton Ovechkin <owanturist@gmail.com>",
+  "license": "BSD-3-Clause"
+}
