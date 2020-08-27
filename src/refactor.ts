@@ -18,7 +18,9 @@ const isArray = (input: unknown): input is Array<unknown> => {
   return input instanceof Array
 }
 
-const isObject = (input: unknown): input is { [key: string]: unknown } => {
+const isObject = (
+  input: unknown
+): input is Record<string | number | symbol, unknown> => {
   return typeof input === 'object' && input !== null && !isArray(input)
 }
 
@@ -217,6 +219,34 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
   }
 }
 
+class Dict<T> extends Decoder<Record<string, T>> {
+  public constructor(private readonly itemDecoder: Decoder<T>) {
+    super()
+  }
+
+  public decode(input: unknown): Result<Err, Record<string, T>> {
+    if (!isObject(input)) {
+      return expecting(false, 'an OBJECT', input)
+    }
+
+    const acc: Record<string, T> = {}
+
+    for (const key in input) {
+      if (Object.prototype.hasOwnProperty.call(input, key)) {
+        const itemResult = this.itemDecoder.decode(input[key])
+
+        if (itemResult.error != null) {
+          return Left(FieldErr(key, itemResult.error))
+        }
+
+        acc[key] = itemResult.value
+      }
+    }
+
+    return Right(acc)
+  }
+}
+
 interface PathSchema {
   optional: unknown
 
@@ -349,29 +379,25 @@ const int: Decoder<number> = new Primitive('an INTEGER', isInteger)
 
 const float: Decoder<number> = new Primitive('a FLOAT', isNumber)
 
-const fail = (message: string): Decoder<never> => new Fail(message)
-
-const succeed = <T>(value: T): Decoder<T> => new Succeed(value)
-
-const dict = <T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> => {
-  return keyValue(itemDecoder).map(pairs => {
-    const acc: Record<string, T> = {}
-
-    for (const [key, value] of pairs) {
-      acc[key] = value
-    }
-
-    return acc
-  })
+function fail(message: string): Decoder<never> {
+  return new Fail(message)
 }
 
-const shape = <T extends Record<string, Decoder<unknown>>>(
+function succeed<T>(value: T): Decoder<T> {
+  return new Succeed(value)
+}
+
+function dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
+  return new Dict(itemDecoder)
+}
+
+function shape<T extends Record<string, Decoder<unknown>>>(
   object: { [K in keyof T]: Decoder<T[K]> }
-): Decoder<T> => {
+): Decoder<T> {
   throw new Error(String(object))
 }
 
-const list = <T>(itemDecoder: Decoder<T>): Decoder<Array<T>> => {
+function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
   throw new Error(String(itemDecoder))
 }
 
@@ -388,33 +414,33 @@ function keyValue<K, T>(
   return new KeyValue<K | string, T>(convertKey, itemDecoder)
 }
 
-const of = <T>(decoder: Decoder<T>): Decoder<T> => {
+function of<T>(decoder: Decoder<T>): Decoder<T> {
   throw new Error(String(decoder))
 }
 
-const oneOf = <T>(decoders: Array<Decoder<T>>): Decoder<T> => {
+function oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T> {
   throw new Error(String(decoders))
 }
 
-const enums = <T>(
+function enums<T>(
   variants: Array<[string | number | boolean | null, T]>
-): Decoder<T> => {
+): Decoder<T> {
   throw new Error(String(variants))
 }
 
-const field = (key: string): RequiredPath => {
+function field(key: string): RequiredPath {
   throw new Error(key)
 }
 
-const index = (position: number): RequiredPath => {
+function index(position: number): RequiredPath {
   throw new Error(String(position))
 }
 
-const at = (path: Array<string | number>): RequiredPath => {
+function at(path: Array<string | number>): RequiredPath {
   throw new Error(String(path))
 }
 
-const lazy = <T>(createDecoder: () => Decoder<T>): Decoder<T> => {
+function lazy<T>(createDecoder: () => Decoder<T>): Decoder<T> {
   throw new Error(String(createDecoder))
 }
 
