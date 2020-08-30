@@ -1,3 +1,5 @@
+import * as Err from './error'
+
 const isString = (input: unknown): input is string => {
   return typeof input === 'string'
 }
@@ -33,58 +35,6 @@ export type Result<E, T> =
 export const Left = <E, T>(error: E): Result<E, T> => ({ error })
 export const Right = <E, T>(value: T): Result<E, T> => ({ value })
 
-export type Err =
-  | { type: ERROR_ONE_OF; errors: Array<Err> }
-  | { type: ERROR_FIELD; name: string; error: Err }
-  | { type: ERROR_INDEX; position: number; error: Err }
-  | { type: ERROR_FAILURE; message: string; source: unknown }
-
-export type ERROR_ONE_OF = 'ERROR_ONE_OF'
-export const ERROR_ONE_OF: ERROR_ONE_OF = 'ERROR_ONE_OF'
-export const OneOfErr = (errors: Array<Err>): Err => ({
-  type: ERROR_ONE_OF,
-  errors
-})
-
-export type ERROR_FIELD = 'ERROR_FIELD'
-export const ERROR_FIELD: ERROR_FIELD = 'ERROR_FIELD'
-export const FieldErr = (name: string, error: Err): Err => ({
-  type: ERROR_FIELD,
-  name,
-  error
-})
-
-export type ERROR_INDEX = 'ERROR_INDEX'
-export const ERROR_INDEX: ERROR_INDEX = 'ERROR_INDEX'
-export const IndexErr = (position: number, error: Err): Err => ({
-  type: ERROR_INDEX,
-  position,
-  error
-})
-
-export type ERROR_FAILURE = 'ERROR_FAILURE'
-export const ERROR_FAILURE: ERROR_FAILURE = 'ERROR_FAILURE'
-export const FailureErr = (message: string, source: unknown): Err => ({
-  type: ERROR_FAILURE,
-  message,
-  source
-})
-
-const expecting = (
-  optional: boolean,
-  type: string,
-  source: unknown
-): Result<Err, never> => {
-  return Left(
-    FailureErr(
-      optional
-        ? `Expecting an OPTIONAL ${type.replace(/^an?\s+/, '')}`
-        : `Expecting ${type}`,
-      source
-    )
-  )
-}
-
 export abstract class Decoder<T> {
   public map<R>(fn: (value: T) => R): Decoder<R> {
     return new Map(fn, this)
@@ -94,17 +44,23 @@ export abstract class Decoder<T> {
     return new Chain(fn, this)
   }
 
-  public decodeJSON(json: string): Result<Err, T> {
+  public decodeJSON(json: string): Result<Err.DecodeError, T> {
     try {
-      return this.decode(JSON.parse(json) as unknown)
-    } catch (error) {
-      const error_ = error as SyntaxError
-
-      return Left(FailureErr(`This is not valid JSON! ${error_.message}`, json))
+      return this.decode(JSON.parse(json))
+    } catch (jsonError) {
+      return Left(Err.ParseJsonError(jsonError, json))
     }
   }
 
-  public abstract decode(input: unknown): Result<Err, T>
+  public decode(input: unknown): Result<Err.DecodeError, T> {
+    try {
+      return this.run(input)
+    } catch (unknownError) {
+      return Left(Err.UnknownError(unknownError))
+    }
+  }
+
+  protected abstract run(input: unknown): Result<Err.DecodeError, T>
 }
 
 class Map<T, R> extends Decoder<R> {
@@ -115,7 +71,7 @@ class Map<T, R> extends Decoder<R> {
     super()
   }
 
-  public decode(input: unknown): Result<Err, R> {
+  protected run(input: unknown): Result<Err.DecodeError, R> {
     const result = this.decoder.decode(input)
 
     if (result.error != null) {
@@ -134,7 +90,7 @@ class Chain<T, R> extends Decoder<R> {
     super()
   }
 
-  public decode(input: unknown): Result<Err, R> {
+  protected run(input: unknown): Result<Err.DecodeError, R> {
     const result = this.decoder.decode(input)
 
     if (result.error != null) {
@@ -147,18 +103,18 @@ class Chain<T, R> extends Decoder<R> {
 
 class Primitive<T> extends Decoder<T> {
   public constructor(
-    private readonly type: string,
+    private readonly type: Err.JsonValue,
     private readonly check: (input: unknown) => input is T
   ) {
     super()
   }
 
-  public decode(input: unknown): Result<Err, T> {
+  protected run(input: unknown): Result<Err.DecodeError, T> {
     if (this.check(input)) {
       return Right(input)
     }
 
-    return expecting(false, this.type, input)
+    return Left(Err.JsonValue(this.type, input))
   }
 }
 
@@ -167,8 +123,8 @@ class Fail extends Decoder<never> {
     super()
   }
 
-  public decode(input: unknown): Result<Err, never> {
-    return Left(FailureErr(this.message, input))
+  protected run(input: unknown): Result<Err.DecodeError, never> {
+    return Left(Err.Failure(this.message, input))
   }
 }
 
@@ -177,8 +133,28 @@ class Succeed<T> extends Decoder<T> {
     super()
   }
 
-  public decode(): Result<Err, T> {
+  protected run(): Result<Err.DecodeError, T> {
     return Right(this.value)
+  }
+}
+
+class Nullable<T> extends Decoder<null | T> {
+  public constructor(private readonly decoder: Decoder<T>) {
+    super()
+  }
+
+  protected run(input: unknown): Result<Err.DecodeError, null | T> {
+    if (input == null) {
+      return Right(null)
+    }
+
+    const result = this.decoder.decode(input)
+
+    if (result.error != null) {
+      return Left(Err.Optional(result.error))
+    }
+
+    return result
   }
 }
 
@@ -190,9 +166,9 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
     super()
   }
 
-  public decode(input: unknown): Result<Err, Array<[K, T]>> {
+  protected run(input: unknown): Result<Err.DecodeError, Array<[K, T]>> {
     if (!isObject(input)) {
-      return expecting(false, 'an OBJECT', input)
+      return Left(Err.JsonValue('OBJECT', input))
     }
 
     const acc: Array<[K, T]> = []
@@ -202,13 +178,13 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
         const keyResult = this.convertKey(key)
 
         if (keyResult.error != null) {
-          return Left(FieldErr(key, FailureErr(keyResult.error, key)))
+          return Left(Err.InField(key, Err.Failure(keyResult.error, key)))
         }
 
         const itemResult = this.itemDecoder.decode(input[key])
 
         if (itemResult.error != null) {
-          return Left(FieldErr(key, itemResult.error))
+          return Left(Err.InField(key, itemResult.error))
         }
 
         acc.push([keyResult.value, itemResult.value])
@@ -224,9 +200,9 @@ class Dict<T> extends Decoder<Record<string, T>> {
     super()
   }
 
-  public decode(input: unknown): Result<Err, Record<string, T>> {
+  protected run(input: unknown): Result<Err.DecodeError, Record<string, T>> {
     if (!isObject(input)) {
-      return expecting(false, 'an OBJECT', input)
+      return Left(Err.JsonValue('OBJECT', input))
     }
 
     const acc: Record<string, T> = {}
@@ -236,7 +212,7 @@ class Dict<T> extends Decoder<Record<string, T>> {
         const itemResult = this.itemDecoder.decode(input[key])
 
         if (itemResult.error != null) {
-          return Left(FieldErr(key, itemResult.error))
+          return Left(Err.InField(key, itemResult.error))
         }
 
         acc[key] = itemResult.value
@@ -244,6 +220,33 @@ class Dict<T> extends Decoder<Record<string, T>> {
     }
 
     return Right(acc)
+  }
+}
+
+class RequiredField<T> extends Decoder<T> {
+  public constructor(
+    private readonly name: string,
+    private readonly decoder: Decoder<T>
+  ) {
+    super()
+  }
+
+  protected run(input: unknown): Result<Err.DecodeError, T> {
+    if (input == null || !isObject(input)) {
+      return Left(Err.JsonValue('OBJECT', input))
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(input, this.name)) {
+      return Left(Err.RequiredField(this.name, input))
+    }
+
+    const result = this.decoder.decode(input[this.name])
+
+    if (result.error != null) {
+      return Left(Err.InField(this.name, result.error))
+    }
+
+    return result
   }
 }
 
@@ -265,7 +268,7 @@ interface PathSchema {
   oneOf: unknown
   enums: unknown
 
-  field(key: string): unknown
+  field(name: string): unknown
   index(position: number): unknown
   at(path: Array<string | number>): unknown
 
@@ -308,11 +311,14 @@ export type OptionalPath = PathFabric<{
   int: Decoder<null | number>
   float: Decoder<null | number>
 
-  dict<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, Decoder<T>>>
-  shape<T extends Record<string, Decoder<unknown>>>(
+  of<T>(decoder: Decoder<T>): Decoder<null | T>
+  lazy<T>(createDecoder: () => Decoder<T>): Decoder<null | T>
+
+  list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>>
+  dict<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>>
+  shape<T extends Record<string, unknown>>(
     object: { [K in keyof T]: Decoder<T[K]> }
   ): Decoder<null | T>
-  list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>>
 
   keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
   keyValue<K, T>(
@@ -320,17 +326,14 @@ export type OptionalPath = PathFabric<{
     itemDecoder: Decoder<T>
   ): Decoder<Array<[K, T]>>
 
-  of<T>(decoder: Decoder<T>): Decoder<null | T>
   oneOf<T>(decoders: Array<Decoder<T>>): Decoder<null | T>
   enums<T>(
     variants: Array<[string | number | boolean | null, T]>
   ): Decoder<null | T>
 
-  field(key: string): OptionalPath
+  field(name: string): OptionalPath
   index(position: number): OptionalPath
   at(path: Array<string | number>): OptionalPath
-
-  lazy<T>(createDecoder: () => Decoder<T>): Decoder<null | T>
 }>
 
 export type RequiredPath = PathFabric<{
@@ -342,11 +345,14 @@ export type RequiredPath = PathFabric<{
   int: Decoder<number>
   float: Decoder<number>
 
-  dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, Decoder<T>>>
-  shape<T extends Record<string, Decoder<unknown>>>(
+  of<T>(decoder: Decoder<T>): Decoder<T>
+  lazy<T>(createDecoder: () => Decoder<T>): Decoder<T>
+
+  list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>>
+  dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>>
+  shape<T extends Record<string, unknown>>(
     object: { [K in keyof T]: Decoder<T[K]> }
   ): Decoder<T>
-  list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>>
 
   keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
   keyValue<K, T>(
@@ -354,30 +360,114 @@ export type RequiredPath = PathFabric<{
     itemDecoder: Decoder<T>
   ): Decoder<Array<[K, T]>>
 
-  of<T>(decoder: Decoder<T>): Decoder<T>
   oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T>
   enums<T>(variants: Array<[string | number | boolean | null, T]>): Decoder<T>
 
-  field(key: string): RequiredPath
+  field(name: string): RequiredPath
   index(position: number): RequiredPath
   at(path: Array<string | number>): RequiredPath
-
-  lazy<T>(createDecoder: () => Decoder<T>): Decoder<T>
 }>
+
+export class Path implements RequiredPath {
+  public constructor(
+    private readonly createDecoder: <T, R>(decoder: Decoder<T>) => Decoder<R>
+  ) {}
+
+  public get optional(): Optional {
+    return new Path(this.createDecoder)
+  }
+
+  public get unknown(): Decoder<unknown> {
+    return this.of(unknown)
+  }
+
+  public get string(): Decoder<string> {
+    return this.of(string)
+  }
+
+  public get boolean(): Decoder<boolean> {
+    return this.of(boolean)
+  }
+
+  public get int(): Decoder<number> {
+    return this.of(int)
+  }
+
+  public get float(): Decoder<number> {
+    return this.of(float)
+  }
+
+  public of<T>(decoder: Decoder<T>): Decoder<T> {
+    return this.createDecoder(decoder)
+  }
+
+  public lazy<T>(createDecoder: () => Decoder<T>): Decoder<T> {
+    return this.of(lazy(createDecoder))
+  }
+
+  public list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
+    return this.of(list(itemDecoder))
+  }
+
+  public dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
+    return this.of(dict(itemDecoder))
+  }
+
+  public shape<T extends Record<string, unknown>>(
+    object: { [K in keyof T]: Decoder<T[K]> }
+  ): Decoder<T> {
+    return this.of(shape(object))
+  }
+
+  public keyValue<K, T>(
+    ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+  ): Decoder<Array<[K | string, T]>> {
+    const [convertKey, itemDecoder] =
+      args.length === 1 ? [Right, args[0]] : args
+
+    return this.of(new KeyValue<K | string, T>(convertKey, itemDecoder))
+  }
+
+  public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T> {
+    return this.of(oneOf(decoders))
+  }
+
+  public enums<T>(
+    variants: Array<[string | number | boolean | null, T]>
+  ): Decoder<T> {
+    return this.of(enums(variants))
+  }
+
+  public field(name: string): RequiredPath {
+    return new Path(
+      <T, R>(decoder: Decoder<T>): Decoder<R> => {
+        return this.createDecoder(new RequiredField(name, decoder))
+      }
+    )
+  }
+
+  public index(position: number): RequiredPath {
+    throw new Error(String(this) + String(position))
+  }
+
+  public at(path: Array<string | number>): RequiredPath {
+    throw new Error(String(this) + String(path))
+  }
+}
 
 // E X P O R T
 
-const optional: Optional = null as never
+const optional: Optional = new Path(decoder => new Nullable(decoder) as any)
 
 const unknown: Decoder<unknown> = null as never
 
-const string: Decoder<string> = new Primitive('a STRING', isString)
+const string: Decoder<string> = new Primitive('STRING', isString)
 
-const boolean: Decoder<boolean> = new Primitive('a BOOLEAN', isBoolean)
+const boolean: Decoder<boolean> = new Primitive('BOOLEAN', isBoolean)
 
-const int: Decoder<number> = new Primitive('an INTEGER', isInteger)
+const int: Decoder<number> = new Primitive('INT', isInteger)
 
-const float: Decoder<number> = new Primitive('a FLOAT', isNumber)
+const float: Decoder<number> = new Primitive('FLOAT', isNumber)
 
 function fail(message: string): Decoder<never> {
   return new Fail(message)
@@ -391,7 +481,7 @@ function dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
   return new Dict(itemDecoder)
 }
 
-function shape<T extends Record<string, Decoder<unknown>>>(
+function shape<T extends Record<string, unknown>>(
   object: { [K in keyof T]: Decoder<T[K]> }
 ): Decoder<T> {
   throw new Error(String(object))
@@ -428,8 +518,8 @@ function enums<T>(
   throw new Error(String(variants))
 }
 
-function field(key: string): RequiredPath {
-  throw new Error(key)
+function field(name: string): RequiredPath {
+  throw new Error(name)
 }
 
 function index(position: number): RequiredPath {
