@@ -369,9 +369,7 @@ export type OptionalPath = PathFabric<{
 
 class OptionalImpl implements Optional {
   public constructor(
-    private readonly createDecoder: <T>(
-      decoder: Decoder<T>
-    ) => Decoder<null | T>
+    private readonly createDecoder: <T>(decoder: Decoder<T>) => Decoder<T>
   ) {}
 
   public get string(): Decoder<null | string> {
