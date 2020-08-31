@@ -367,20 +367,12 @@ export type OptionalPath = PathFabric<{
   at(path: Array<string | number>): OptionalPath
 }>
 
-class OptionalPathImpl implements OptionalPath {
+class OptionalImpl implements Optional {
   public constructor(
     private readonly createDecoder: <T>(
-      decoder: Decoder<null | T>
+      decoder: Decoder<T>
     ) => Decoder<null | T>
   ) {}
-
-  public get optional(): Optional {
-    return new OptionalPathImpl(this.createDecoder)
-  }
-
-  public get unknown(): Decoder<unknown> {
-    return this.of(unknown)
-  }
 
   public get string(): Decoder<null | string> {
     return this.of(string)
@@ -400,10 +392,6 @@ class OptionalPathImpl implements OptionalPath {
 
   public of<T>(decoder: Decoder<T>): Decoder<null | T> {
     return this.createDecoder(new Nullable(decoder))
-  }
-
-  public lazy<T>(createDecoder: () => Decoder<T>): Decoder<null | T> {
-    return this.of(lazy(createDecoder))
   }
 
   public list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>> {
@@ -485,11 +473,11 @@ export type RequiredPath = PathFabric<{
 
 class RequiredPathImpl implements RequiredPath {
   public constructor(
-    private readonly createDecoder: <T>(decoder: Decoder<T>) => Decoder<T>
+    protected readonly createDecoder: <T>(decoder: Decoder<T>) => Decoder<T>
   ) {}
 
   public get optional(): Optional {
-    return new OptionalPathImpl(this.createDecoder)
+    return new OptionalImpl(this.createDecoder)
   }
 
   public get unknown(): Decoder<unknown> {
@@ -567,7 +555,7 @@ class RequiredPathImpl implements RequiredPath {
 
 // E X P O R T
 
-const optional: Optional = new OptionalPathImpl(decoder => decoder)
+const optional: Optional = new OptionalImpl(decoder => decoder)
 
 const unknown: Decoder<unknown> = null as never
 
