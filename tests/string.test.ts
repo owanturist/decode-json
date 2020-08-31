@@ -3,7 +3,7 @@
 
 import test from 'ava'
 
-import Decode, { Left, Right } from '../src/refactor'
+import Decode, { Left, Right } from '../src'
 import {
   Optional,
   InField,
