@@ -13,6 +13,8 @@ import {
   JsonValue
 } from '../src/error'
 
+export const fo = Decode.optional.field('asd').field('123')
+
 test('Decode.string', t => {
   t.deepEqual(
     Decode.string.decode(undefined),
@@ -53,7 +55,7 @@ test('Decode.optional.string', t => {
   )
 })
 
-test.skip('Decode.field(name).string', t => {
+test('Decode.field(name).string', t => {
   // Decode<string>
   const _0 = Decode.field('_0').string
 
@@ -75,7 +77,7 @@ test.skip('Decode.field(name).string', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test.skip('Decode.field(name).optional.string', t => {
+test('Decode.field(name).optional.string', t => {
   // Decode<string | null>
   const _0 = Decode.field('_0').optional.string
 

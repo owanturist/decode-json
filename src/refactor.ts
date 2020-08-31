@@ -232,7 +232,7 @@ class RequiredField<T> extends Decoder<T> {
   }
 
   protected run(input: unknown): Result<Err.DecodeError, T> {
-    if (input == null || !isObject(input)) {
+    if (!isObject(input)) {
       return Left(Err.JsonValue('OBJECT', input))
     }
 
@@ -320,11 +320,11 @@ export type OptionalPath = PathFabric<{
     object: { [K in keyof T]: Decoder<T[K]> }
   ): Decoder<null | T>
 
-  keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
+  keyValue<T>(itemDecoder: Decoder<T>): Decoder<null | Array<[string, T]>>
   keyValue<K, T>(
     convertKey: (key: string) => Result<string, K>,
     itemDecoder: Decoder<T>
-  ): Decoder<Array<[K, T]>>
+  ): Decoder<null | Array<[K, T]>>
 
   oneOf<T>(decoders: Array<Decoder<T>>): Decoder<null | T>
   enums<T>(
@@ -335,6 +335,93 @@ export type OptionalPath = PathFabric<{
   index(position: number): OptionalPath
   at(path: Array<string | number>): OptionalPath
 }>
+
+class OptionalPathImpl implements OptionalPath {
+  public constructor(
+    private readonly createDecoder: <T>(
+      decoder: Decoder<T>
+    ) => Decoder<null | T>
+  ) {}
+
+  public get optional(): Optional {
+    return new OptionalPathImpl(this.createDecoder)
+  }
+
+  public get unknown(): Decoder<unknown> {
+    return this.of(unknown)
+  }
+
+  public get string(): Decoder<null | string> {
+    return this.of(string)
+  }
+
+  public get boolean(): Decoder<null | boolean> {
+    return this.of(boolean)
+  }
+
+  public get int(): Decoder<null | number> {
+    return this.of(int)
+  }
+
+  public get float(): Decoder<null | number> {
+    return this.of(float)
+  }
+
+  public of<T>(decoder: Decoder<T>): Decoder<null | T> {
+    return this.createDecoder(decoder)
+  }
+
+  public lazy<T>(createDecoder: () => Decoder<T>): Decoder<null | T> {
+    return this.of(lazy(createDecoder))
+  }
+
+  public list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>> {
+    return this.of(list(itemDecoder))
+  }
+
+  public dict<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>> {
+    return this.of(dict(itemDecoder))
+  }
+
+  public shape<T extends Record<string, unknown>>(
+    object: { [K in keyof T]: Decoder<T[K]> }
+  ): Decoder<null | T> {
+    return this.of(shape(object))
+  }
+
+  public keyValue<K, T>(
+    ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+  ): Decoder<null | Array<[K | string, T]>> {
+    const [convertKey, itemDecoder] =
+      args.length === 1 ? [Right, args[0]] : args
+
+    return this.of(new KeyValue<K | string, T>(convertKey, itemDecoder))
+  }
+
+  public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<null | T> {
+    return this.of(oneOf(decoders))
+  }
+
+  public enums<T>(
+    variants: Array<[string | number | boolean | null, T]>
+  ): Decoder<null | T> {
+    return this.of(enums(variants))
+  }
+
+  public field(name: string): OptionalPath {
+    return new OptionalPathImpl(decoder => {
+      return this.createDecoder(new RequiredField(name, decoder))
+    })
+  }
+
+  public index(position: number): OptionalPath {
+    throw new Error(String(this) + String(position))
+  }
+
+  public at(path: Array<string | number>): OptionalPath {
+    throw new Error(String(this) + String(path))
+  }
+}
 
 export type RequiredPath = PathFabric<{
   optional: Optional
@@ -368,13 +455,15 @@ export type RequiredPath = PathFabric<{
   at(path: Array<string | number>): RequiredPath
 }>
 
-export class Path implements RequiredPath {
+class RequiredPathImpl implements RequiredPath {
   public constructor(
-    private readonly createDecoder: <T, R>(decoder: Decoder<T>) => Decoder<R>
+    private readonly createDecoder: <T>(decoder: Decoder<T>) => Decoder<T>
   ) {}
 
   public get optional(): Optional {
-    return new Path(this.createDecoder)
+    return new OptionalPathImpl(decoder => {
+      return this.createDecoder(new Nullable(decoder))
+    })
   }
 
   public get unknown(): Decoder<unknown> {
@@ -439,11 +528,9 @@ export class Path implements RequiredPath {
   }
 
   public field(name: string): RequiredPath {
-    return new Path(
-      <T, R>(decoder: Decoder<T>): Decoder<R> => {
-        return this.createDecoder(new RequiredField(name, decoder))
-      }
-    )
+    return new RequiredPathImpl(decoder => {
+      return this.createDecoder(new RequiredField(name, decoder))
+    })
   }
 
   public index(position: number): RequiredPath {
@@ -457,7 +544,9 @@ export class Path implements RequiredPath {
 
 // E X P O R T
 
-const optional: Optional = new Path(decoder => new Nullable(decoder) as any)
+const optional: Optional = new OptionalPathImpl(
+  decoder => new Nullable(decoder)
+)
 
 const unknown: Decoder<unknown> = null as never
 
@@ -519,7 +608,7 @@ function enums<T>(
 }
 
 function field(name: string): RequiredPath {
-  throw new Error(name)
+  return new RequiredPathImpl(decoder => new RequiredField(name, decoder))
 }
 
 function index(position: number): RequiredPath {
