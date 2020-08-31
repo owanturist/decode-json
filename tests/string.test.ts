@@ -122,7 +122,7 @@ test('Decode.optional.field(name).string', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test.skip('Decode.optional.field(name).optional.string', t => {
+test('Decode.optional.field(name).optional.string', t => {
   // Decode<string | null>
   const _0 = Decode.optional.field('_0').optional.string
 
@@ -138,7 +138,7 @@ test.skip('Decode.optional.field(name).optional.string', t => {
 
   t.deepEqual(
     _0.decode({ _0: 1 }),
-    Left(InField('_0', Optional(JsonValue('STRING', 1))))
+    Left(Optional(InField('_0', Optional(JsonValue('STRING', 1)))))
   )
 
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))

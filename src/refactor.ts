@@ -370,7 +370,7 @@ export type OptionalPath = PathFabric<{
 class OptionalPathImpl implements OptionalPath {
   public constructor(
     private readonly createDecoder: <T>(
-      decoder: Decoder<T>
+      decoder: Decoder<null | T>
     ) => Decoder<null | T>
   ) {}
 
@@ -423,11 +423,7 @@ class OptionalPathImpl implements OptionalPath {
   public keyValue<K, T>(
     ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
   ): Decoder<null | Array<[K | string, T]>> {
-    return this.of(
-      (keyValue as (
-        ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
-      ) => Decoder<null | Array<[K | string, T]>>)(...args)
-    )
+    return this.of(keyValueHelp(...args))
   }
 
   public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<null | T> {
@@ -441,7 +437,7 @@ class OptionalPathImpl implements OptionalPath {
   }
 
   public field(name: string): OptionalPath {
-    return new RequiredPathImpl((decoder: any): any => {
+    return new RequiredPathImpl((decoder): any => {
       return this.createDecoder(new OptionalField(name, decoder))
     })
   }
@@ -541,11 +537,7 @@ class RequiredPathImpl implements RequiredPath {
   public keyValue<K, T>(
     ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
   ): Decoder<Array<[K | string, T]>> {
-    return this.of(
-      (keyValue as (
-        ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
-      ) => Decoder<Array<[K | string, T]>>)(...args)
-    )
+    return this.of(keyValueHelp(...args))
   }
 
   public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T> {
@@ -609,6 +601,14 @@ function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
   throw new Error(String(itemDecoder))
 }
 
+const keyValueHelp = <K, T>(
+  ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+): Decoder<Array<[K | string, T]>> => {
+  const [convertKey, itemDecoder] = args.length === 1 ? [Right, args[0]] : args
+
+  return new KeyValue<K | string, T>(convertKey, itemDecoder)
+}
+
 function keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
 function keyValue<K, T>(
   convertKey: (key: string) => Result<string, K>,
@@ -617,9 +617,7 @@ function keyValue<K, T>(
 function keyValue<K, T>(
   ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
 ): Decoder<Array<[K | string, T]>> {
-  const [convertKey, itemDecoder] = args.length === 1 ? [Right, args[0]] : args
-
-  return new KeyValue<K | string, T>(convertKey, itemDecoder)
+  return keyValueHelp(...args)
 }
 
 function of<T>(decoder: Decoder<T>): Decoder<T> {
