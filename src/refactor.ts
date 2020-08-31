@@ -250,6 +250,37 @@ class RequiredField<T> extends Decoder<T> {
   }
 }
 
+class OptionalField<T> extends Decoder<null | T> {
+  public constructor(
+    private readonly name: string,
+    private readonly decoder: Decoder<T>
+  ) {
+    super()
+  }
+
+  protected run(input: unknown): Result<Err.DecodeError, null | T> {
+    if (input == null) {
+      return Right(null)
+    }
+
+    if (!isObject(input)) {
+      return Left(Err.Optional(Err.JsonValue('OBJECT', input)))
+    }
+
+    if (!Object.prototype.hasOwnProperty.call(input, this.name)) {
+      return Right(null)
+    }
+
+    const result = this.decoder.decode(input[this.name])
+
+    if (result.error != null) {
+      return Left(Err.Optional(Err.InField(this.name, result.error)))
+    }
+
+    return result
+  }
+}
+
 interface PathSchema {
   optional: unknown
 
@@ -368,7 +399,7 @@ class OptionalPathImpl implements OptionalPath {
   }
 
   public of<T>(decoder: Decoder<T>): Decoder<null | T> {
-    return this.createDecoder(decoder)
+    return this.createDecoder(new Nullable(decoder))
   }
 
   public lazy<T>(createDecoder: () => Decoder<T>): Decoder<null | T> {
@@ -392,10 +423,11 @@ class OptionalPathImpl implements OptionalPath {
   public keyValue<K, T>(
     ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
   ): Decoder<null | Array<[K | string, T]>> {
-    const [convertKey, itemDecoder] =
-      args.length === 1 ? [Right, args[0]] : args
-
-    return this.of(new KeyValue<K | string, T>(convertKey, itemDecoder))
+    return this.of(
+      (keyValue as (
+        ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+      ) => Decoder<null | Array<[K | string, T]>>)(...args)
+    )
   }
 
   public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<null | T> {
@@ -409,8 +441,8 @@ class OptionalPathImpl implements OptionalPath {
   }
 
   public field(name: string): OptionalPath {
-    return new OptionalPathImpl(decoder => {
-      return this.createDecoder(new RequiredField(name, decoder))
+    return new RequiredPathImpl((decoder: any): any => {
+      return this.createDecoder(new OptionalField(name, decoder))
     })
   }
 
@@ -461,9 +493,7 @@ class RequiredPathImpl implements RequiredPath {
   ) {}
 
   public get optional(): Optional {
-    return new OptionalPathImpl(decoder => {
-      return this.createDecoder(new Nullable(decoder))
-    })
+    return new OptionalPathImpl(this.createDecoder)
   }
 
   public get unknown(): Decoder<unknown> {
@@ -511,10 +541,11 @@ class RequiredPathImpl implements RequiredPath {
   public keyValue<K, T>(
     ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
   ): Decoder<Array<[K | string, T]>> {
-    const [convertKey, itemDecoder] =
-      args.length === 1 ? [Right, args[0]] : args
-
-    return this.of(new KeyValue<K | string, T>(convertKey, itemDecoder))
+    return this.of(
+      (keyValue as (
+        ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+      ) => Decoder<Array<[K | string, T]>>)(...args)
+    )
   }
 
   public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T> {
@@ -544,9 +575,7 @@ class RequiredPathImpl implements RequiredPath {
 
 // E X P O R T
 
-const optional: Optional = new OptionalPathImpl(
-  decoder => new Nullable(decoder)
-)
+const optional: Optional = new OptionalPathImpl(decoder => decoder)
 
 const unknown: Decoder<unknown> = null as never
 
