@@ -61,9 +61,9 @@ test('Decode.field(name).string', t => {
 
   t.deepEqual(_0.decode(null), Left(JsonValue('OBJECT', null)))
 
-  t.deepEqual(_0.decode([]), Left(JsonValue('OBJECT', [])))
+  t.deepEqual(_0.decode([0]), Left(JsonValue('OBJECT', [0])))
 
-  t.deepEqual(_0.decode({}), Left(RequiredField('_0', {})))
+  t.deepEqual(_0.decode({ _1: 0 }), Left(RequiredField('_0', { _1: 0 })))
 
   t.deepEqual(
     _0.decode({ _0: null }),
@@ -83,9 +83,9 @@ test('Decode.field(name).optional.string', t => {
 
   t.deepEqual(_0.decode(null), Left(JsonValue('OBJECT', null)))
 
-  t.deepEqual(_0.decode([]), Left(JsonValue('OBJECT', [])))
+  t.deepEqual(_0.decode([0]), Left(JsonValue('OBJECT', [0])))
 
-  t.deepEqual(_0.decode({}), Left(RequiredField('_0', {})))
+  t.deepEqual(_0.decode({ _1: 0 }), Left(RequiredField('_0', { _1: 0 })))
 
   t.deepEqual(_0.decode({ _0: null }), Right(null))
 
@@ -105,7 +105,7 @@ test('Decode.optional.field(name).string', t => {
 
   t.deepEqual(_0.decode(null), Right(null))
 
-  t.deepEqual(_0.decode([]), Left(Optional(JsonValue('OBJECT', []))))
+  t.deepEqual(_0.decode([0]), Left(Optional(JsonValue('OBJECT', [0]))))
 
   t.deepEqual(_0.decode({}), Right(null))
 
@@ -130,7 +130,7 @@ test('Decode.optional.field(name).optional.string', t => {
 
   t.deepEqual(_0.decode(null), Right(null))
 
-  t.deepEqual(_0.decode([]), Left(Optional(JsonValue('OBJECT', []))))
+  t.deepEqual(_0.decode([0]), Left(Optional(JsonValue('OBJECT', [0]))))
 
   t.deepEqual(_0.decode({}), Right(null))
 
