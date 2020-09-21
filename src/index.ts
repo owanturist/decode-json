@@ -231,13 +231,19 @@ class RequiredField<T> extends Decoder<T> {
     super()
   }
 
+  protected fallbackAbsent(
+    input: Record<string | number | symbol, unknown>
+  ): Result<Err.DecodeError, T> {
+    return Left(Err.RequiredField(this.name, input))
+  }
+
   protected run(input: unknown): Result<Err.DecodeError, T> {
     if (!isObject(input)) {
       return Left(Err.JsonValue('OBJECT', input))
     }
 
     if (!Object.prototype.hasOwnProperty.call(input, this.name)) {
-      return Left(Err.RequiredField(this.name, input))
+      return this.fallbackAbsent(input)
     }
 
     const result = this.decoder.decode(input[this.name])
@@ -250,30 +256,10 @@ class RequiredField<T> extends Decoder<T> {
   }
 }
 
-class OptionalField<T> extends Decoder<null | T> {
-  public constructor(
-    private readonly name: string,
-    private readonly decoder: Decoder<T>
-  ) {
-    super()
-  }
-
-  protected run(input: unknown): Result<Err.DecodeError, null | T> {
-    if (!isObject(input)) {
-      return Left(Err.JsonValue('OBJECT', input))
-    }
-
-    if (!Object.prototype.hasOwnProperty.call(input, this.name)) {
-      return Right(null)
-    }
-
-    const result = this.decoder.decode(input[this.name])
-
-    if (result.error != null) {
-      return Left(Err.InField(this.name, result.error))
-    }
-
-    return result
+class OptionalField<T> extends RequiredField<null | T> {
+  // eslint-disable-next-line class-methods-use-this
+  protected fallbackAbsent(): Result<Err.DecodeError, null | T> {
+    return Right(null)
   }
 }
 
