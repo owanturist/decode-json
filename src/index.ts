@@ -259,12 +259,8 @@ class OptionalField<T> extends Decoder<null | T> {
   }
 
   protected run(input: unknown): Result<Err.DecodeError, null | T> {
-    if (input == null) {
-      return Right(null)
-    }
-
     if (!isObject(input)) {
-      return Left(Err.Optional(Err.JsonValue('OBJECT', input)))
+      return Left(Err.JsonValue('OBJECT', input))
     }
 
     if (!Object.prototype.hasOwnProperty.call(input, this.name)) {
@@ -274,7 +270,7 @@ class OptionalField<T> extends Decoder<null | T> {
     const result = this.decoder.decode(input[this.name])
 
     if (result.error != null) {
-      return Left(Err.Optional(Err.InField(this.name, result.error)))
+      return Left(Err.InField(this.name, result.error))
     }
 
     return result
@@ -427,7 +423,7 @@ class OptionalImpl implements Optional {
   public field(name: string): OptionalPath {
     return new PathImpl(
       <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
-        return this.createDecoder(new OptionalField(name, decoder))
+        return this.of(new OptionalField(name, decoder))
       }
     )
   }
