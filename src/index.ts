@@ -306,7 +306,7 @@ interface PathSchema {
   lazy(createDecoder: () => Decoder<unknown>): Decoder<unknown>
 }
 
-interface PathFabric<C extends PathSchema> {
+interface PathInterface<C extends PathSchema> {
   optional: C['optional']
 
   unknown: C['unknown']
@@ -333,7 +333,7 @@ interface PathFabric<C extends PathSchema> {
 
 export type Optional = Omit<OptionalPath, 'optional' | 'unknown' | 'lazy'>
 
-export type OptionalPath = PathFabric<{
+export type OptionalPath = PathInterface<{
   optional: Optional
 
   unknown: Decoder<unknown>
@@ -369,7 +369,9 @@ export type OptionalPath = PathFabric<{
 
 class OptionalImpl implements Optional {
   public constructor(
-    private readonly createDecoder: <T>(decoder: Decoder<T>) => Decoder<T>
+    private readonly createDecoder: <T>(
+      decoder: Decoder<null | T>
+    ) => Decoder<null | T>
   ) {}
 
   public get string(): Decoder<null | string> {
@@ -423,9 +425,11 @@ class OptionalImpl implements Optional {
   }
 
   public field(name: string): OptionalPath {
-    return new RequiredPathImpl((decoder): any => {
-      return this.createDecoder(new OptionalField(name, decoder))
-    })
+    return new PathImpl(
+      <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
+        return this.createDecoder(new OptionalField(name, decoder))
+      }
+    )
   }
 
   public index(position: number): OptionalPath {
@@ -437,7 +441,7 @@ class OptionalImpl implements Optional {
   }
 }
 
-export type RequiredPath = PathFabric<{
+export type RequiredPath = PathInterface<{
   optional: Optional
 
   unknown: Decoder<unknown>
@@ -469,10 +473,13 @@ export type RequiredPath = PathFabric<{
   at(path: Array<string | number>): RequiredPath
 }>
 
-class RequiredPathImpl implements RequiredPath {
-  public constructor(
-    protected readonly createDecoder: <T>(decoder: Decoder<T>) => Decoder<T>
-  ) {}
+interface CreateDecoder {
+  <T>(decoder: Decoder<T>): Decoder<T>
+  <T>(decoder: Decoder<null | T>): Decoder<null | T>
+}
+
+class PathImpl implements RequiredPath {
+  public constructor(protected readonly createDecoder: CreateDecoder) {}
 
   public get optional(): Optional {
     return new OptionalImpl(this.createDecoder)
@@ -502,8 +509,8 @@ class RequiredPathImpl implements RequiredPath {
     return this.createDecoder(decoder)
   }
 
-  public lazy<T>(createDecoder: () => Decoder<T>): Decoder<T> {
-    return this.of(lazy(createDecoder))
+  public lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T> {
+    return this.of(lazy(lazyDecoder))
   }
 
   public list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
@@ -537,9 +544,11 @@ class RequiredPathImpl implements RequiredPath {
   }
 
   public field(name: string): RequiredPath {
-    return new RequiredPathImpl(decoder => {
-      return this.createDecoder(new RequiredField(name, decoder))
-    })
+    return new PathImpl(
+      <T>(decoder: Decoder<T>): Decoder<T> => {
+        return this.createDecoder(new RequiredField(name, decoder))
+      }
+    )
   }
 
   public index(position: number): RequiredPath {
@@ -621,7 +630,9 @@ function enums<T>(
 }
 
 function field(name: string): RequiredPath {
-  return new RequiredPathImpl(decoder => new RequiredField(name, decoder))
+  return new PathImpl(
+    <T>(decoder: Decoder<T>): Decoder<T> => new RequiredField(name, decoder)
+  )
 }
 
 function index(position: number): RequiredPath {
@@ -632,8 +643,8 @@ function at(path: Array<string | number>): RequiredPath {
   throw new Error(String(path))
 }
 
-function lazy<T>(createDecoder: () => Decoder<T>): Decoder<T> {
-  throw new Error(String(createDecoder))
+function lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T> {
+  throw new Error(String(lazyDecoder))
 }
 
 export default {
