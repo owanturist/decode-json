@@ -4,7 +4,14 @@
 import test from 'ava'
 
 import Decode, { Left, Right } from '../src'
-import { Optional, InField, RequiredField, JsonValue } from '../src/error'
+import {
+  Optional,
+  InField,
+  RequiredField,
+  AtIndex,
+  RequiredIndex,
+  JsonValue
+} from '../src/error'
 
 test('Decode.field(name).of', t => {
   // Decode<string>
@@ -351,6 +358,132 @@ test('Decode.optional.field(name).optional.field(name).optional.of', t => {
       _0: {
         _1: 'str'
       }
+    }),
+    Right('str')
+  )
+})
+
+test('Decode.field(name).index(position).field(name).of', t => {
+  // Decoder<string>
+  const _0 = Decode.field('_0').index(0).field('_1').of(Decode.string)
+
+  t.deepEqual(_0.decode(null), Left(JsonValue('OBJECT', null)))
+
+  t.deepEqual(_0.decode({}), Left(RequiredField('_0', {})))
+
+  t.deepEqual(_0.decode({ _0: [] }), Left(InField('_0', RequiredIndex(0, []))))
+
+  t.deepEqual(
+    _0.decode({ _0: [{}] }),
+    Left(InField('_0', AtIndex(0, RequiredField('_1', {}))))
+  )
+
+  t.deepEqual(
+    _0.decode({ _0: [{ _1: null }] }),
+    Left(InField('_0', AtIndex(0, InField('_1', JsonValue('STRING', null)))))
+  )
+
+  t.deepEqual(
+    _0.decode({
+      _0: [{ _1: 'str' }]
+    }),
+    Right('str')
+  )
+})
+
+test('Decode.field(name).index(position).field(name).optional.of', t => {
+  // Decoder<number | null>
+  const _0 = Decode.field('_0').index(0).field('_1').optional.of(Decode.float)
+
+  t.deepEqual(
+    _0.decode({
+      _0: [{ _1: null }]
+    }),
+    Right(null)
+  )
+
+  t.deepEqual(
+    _0.decode({
+      _0: [{ _1: 123 }]
+    }),
+    Right(123)
+  )
+})
+
+test('Decode.field(name).index(position).optional.field(name).of', t => {
+  // Decoder<number | null>
+  const _0 = Decode.field('_0').index(0).optional.field('_1').of(Decode.float)
+
+  t.deepEqual(
+    _0.decode({
+      _0: [null, { _1: 12.34 }]
+    }),
+    Right(null)
+  )
+
+  t.deepEqual(
+    _0.decode({
+      _0: [{ _1: 12.34 }]
+    }),
+    Right(12.34)
+  )
+})
+
+test('Decode.field(name).optional.index(position).field(name).of', t => {
+  // Decoder<boolean | null>
+  const _0 = Decode.field('_0').optional.index(0).field('_1').of(Decode.boolean)
+
+  t.deepEqual(
+    _0.decode({
+      _0: null
+    }),
+    Right(null)
+  )
+
+  t.deepEqual(
+    _0.decode({
+      _0: [{ _1: false }]
+    }),
+    Right(false)
+  )
+})
+
+test('Decode.optional.field(name).index(position).field(name).of', t => {
+  // Decoder<string | null>
+  const _0 = Decode.optional.field('_0').index(0).field('_1').of(Decode.string)
+
+  t.deepEqual(_0.decode(null), Right(null))
+
+  t.deepEqual(
+    _0.decode({
+      _0: [{ _1: 'str' }]
+    }),
+    Right('str')
+  )
+})
+
+test('Decode.optional.field(name).optional.index(position).optional.field(name).optional.of', t => {
+  // Decoder<string | null>
+  // eslint-disable-next-line prettier/prettier
+  const _0 = Decode.optional
+    .field('_0')
+    .optional.index(0)
+    .optional.field('_1')
+    .optional.of(Decode.string)
+
+  t.deepEqual(_0.decode(null), Right(null))
+
+  t.deepEqual(_0.decode({}), Right(null))
+
+  t.deepEqual(_0.decode({ _0: [] }), Right(null))
+
+  t.deepEqual(_0.decode({ _0: [{}] }), Right(null))
+
+  t.deepEqual(_0.decode({ _0: [{ _1: null }] }), Right(null))
+
+  t.deepEqual(
+    _0.decode({
+      _0: [{ _1: 'str' }]
     }),
     Right('str')
   )
