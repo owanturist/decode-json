@@ -231,7 +231,7 @@ class RequiredField<T> extends Decoder<T> {
     super()
   }
 
-  protected fallbackAbsent(
+  protected fieldNotDefined(
     input: Record<string | number | symbol, unknown>
   ): Result<Err.DecodeError, T> {
     return Left(Err.RequiredField(this.name, input))
@@ -243,7 +243,7 @@ class RequiredField<T> extends Decoder<T> {
     }
 
     if (!Object.prototype.hasOwnProperty.call(input, this.name)) {
-      return this.fallbackAbsent(input)
+      return this.fieldNotDefined(input)
     }
 
     const result = this.decoder.decode(input[this.name])
@@ -258,7 +258,45 @@ class RequiredField<T> extends Decoder<T> {
 
 class OptionalField<T> extends RequiredField<null | T> {
   // eslint-disable-next-line class-methods-use-this
-  protected fallbackAbsent(): Result<Err.DecodeError, null | T> {
+  protected fieldNotDefined(): Result<Err.DecodeError, null | T> {
+    return Right(null)
+  }
+}
+
+class RequiredIndex<T> extends Decoder<T> {
+  public constructor(
+    private readonly position: number,
+    private readonly decoder: Decoder<T>
+  ) {
+    super()
+  }
+
+  protected outOfRange(input: Array<unknown>): Result<Err.DecodeError, T> {
+    return Left(Err.RequiredIndex(this.position, input))
+  }
+
+  protected run(input: unknown): Result<Err.DecodeError, T> {
+    if (!isArray(input)) {
+      return Left(Err.JsonValue('ARRAY', input))
+    }
+
+    if (this.position < 0 || this.position >= input.length) {
+      return this.outOfRange(input)
+    }
+
+    const result = this.decoder.decode(input[this.position])
+
+    if (result.error != null) {
+      return Left(Err.AtIndex(this.position, result.error))
+    }
+
+    return result
+  }
+}
+
+class OptionalIndex<T> extends RequiredIndex<null | T> {
+  // eslint-disable-next-line class-methods-use-this
+  protected outOfRange(): Result<Err.DecodeError, null | T> {
     return Right(null)
   }
 }
@@ -415,7 +453,11 @@ class OptionalImpl implements Optional {
   }
 
   public index(position: number): OptionalPath {
-    throw new Error(String(this) + String(position))
+    return new PathImpl(
+      <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
+        return this.of(new OptionalIndex(position, decoder))
+      }
+    )
   }
 
   public at(path: Array<string | number>): OptionalPath {
@@ -528,13 +570,17 @@ class PathImpl implements RequiredPath {
   public field(name: string): RequiredPath {
     return new PathImpl(
       <T>(decoder: Decoder<T>): Decoder<T> => {
-        return this.createDecoder(new RequiredField(name, decoder))
+        return this.of(new RequiredField(name, decoder))
       }
     )
   }
 
   public index(position: number): RequiredPath {
-    throw new Error(String(this) + String(position))
+    return new PathImpl(
+      <T>(decoder: Decoder<T>): Decoder<T> => {
+        return this.of(new RequiredIndex(position, decoder))
+      }
+    )
   }
 
   public at(path: Array<string | number>): RequiredPath {
@@ -618,7 +664,9 @@ function field(name: string): RequiredPath {
 }
 
 function index(position: number): RequiredPath {
-  throw new Error(String(position))
+  return new PathImpl(
+    <T>(decoder: Decoder<T>): Decoder<T> => new RequiredIndex(position, decoder)
+  )
 }
 
 function at(path: Array<string | number>): RequiredPath {
