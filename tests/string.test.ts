@@ -1,4 +1,3 @@
-/* eslint-disable ava/no-skip-test */
 /* eslint-disable no-undefined */
 
 import test from 'ava'
@@ -53,7 +52,7 @@ test('Decode.optional.string', t => {
   )
 })
 
-test('Decode.field(name).string', t => {
+test('Decode.field().string', t => {
   // Decode<string>
   const _0 = Decode.field('_0').string
 
@@ -75,7 +74,7 @@ test('Decode.field(name).string', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test('Decode.field(name).optional.string', t => {
+test('Decode.field().optional.string', t => {
   // Decode<string | null>
   const _0 = Decode.field('_0').optional.string
 
@@ -97,7 +96,7 @@ test('Decode.field(name).optional.string', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test('Decode.optional.field(name).string', t => {
+test('Decode.optional.field().string', t => {
   // Decode<string | null>
   const _0 = Decode.optional.field('_0').string
 
@@ -122,7 +121,7 @@ test('Decode.optional.field(name).string', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test('Decode.optional.field(name).optional.string', t => {
+test('Decode.optional.field().optional.string', t => {
   // Decode<string | null>
   const _0 = Decode.optional.field('_0').optional.string
 
@@ -144,7 +143,7 @@ test('Decode.optional.field(name).optional.string', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test('Decode.index(position).string', t => {
+test('Decode.index().string', t => {
   // Decode<string>
   const _0 = Decode.index(1).string
 
@@ -166,7 +165,7 @@ test('Decode.index(position).string', t => {
   t.deepEqual(_0.decode(['', 'str']), Right('str'))
 })
 
-test('Decode.index(position).optional.string', t => {
+test('Decode.index().optional.string', t => {
   // Decode<string | null>
   const _0 = Decode.index(1).optional.string
 
@@ -188,7 +187,7 @@ test('Decode.index(position).optional.string', t => {
   t.deepEqual(_0.decode(['', 'str']), Right('str'))
 })
 
-test('Decode.optional.index(position).string', t => {
+test('Decode.optional.index().string', t => {
   // Decode<string | null>
   const _0 = Decode.optional.index(1).string
 
@@ -213,7 +212,7 @@ test('Decode.optional.index(position).string', t => {
   t.deepEqual(_0.decode(['', 'str']), Right('str'))
 })
 
-test('Decode.optional.index(position).optional.string', t => {
+test('Decode.optional.index().optional.string', t => {
   // Decode<string | null>
   const _0 = Decode.optional.index(1).optional.string
 

@@ -1,4 +1,3 @@
-/* eslint-disable ava/no-skip-test */
 /* eslint-disable no-undefined */
 
 import test from 'ava'
@@ -13,7 +12,7 @@ import {
   JsonValue
 } from '../src/error'
 
-test('Decode.field(name).of', t => {
+test('Decode.field().of', t => {
   // Decode<string>
   const _0 = Decode.field('_0').of(Decode.string)
 
@@ -35,7 +34,7 @@ test('Decode.field(name).of', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test('Decode.field(name).optional.of', t => {
+test('Decode.field().optional.of', t => {
   // Decode<number | null>
   const _0 = Decode.field('_0').optional.of(Decode.int)
 
@@ -57,7 +56,7 @@ test('Decode.field(name).optional.of', t => {
   t.deepEqual(_0.decode({ _0: 2 }), Right(2))
 })
 
-test('Decode.optional.field(name).of', t => {
+test('Decode.optional.field().of', t => {
   // Decode<boolean | null>
   const _0 = Decode.optional.field('_0').of(Decode.boolean)
 
@@ -82,7 +81,7 @@ test('Decode.optional.field(name).of', t => {
   t.deepEqual(_0.decode({ _0: false }), Right(false))
 })
 
-test('Decode.optional.field(name).optional.of', t => {
+test('Decode.optional.field().optional.of', t => {
   // Decode<number | null>
   const _0 = Decode.optional.field('_0').optional.of(Decode.float)
 
@@ -104,7 +103,7 @@ test('Decode.optional.field(name).optional.of', t => {
   t.deepEqual(_0.decode({ _0: 2.23 }), Right(2.23))
 })
 
-test('Decode.field(name).field(name).of', t => {
+test('Decode.field().field().of', t => {
   // Decoder<string>
   const _0 = Decode.field('_0').field('_1').of(Decode.string)
 
@@ -139,7 +138,7 @@ test('Decode.field(name).field(name).of', t => {
   )
 })
 
-test('Decode.field(name).field(name).optional.of', t => {
+test('Decode.field().field().optional.of', t => {
   // Decoder<string | null>
   const _0 = Decode.field('_0').field('_1').optional.of(Decode.string)
 
@@ -174,7 +173,7 @@ test('Decode.field(name).field(name).optional.of', t => {
   )
 })
 
-test('Decode.field(name).optional.field(name).of', t => {
+test('Decode.field().optional.field().of', t => {
   // Decoder<string | null>
   const _0 = Decode.field('_0').optional.field('_1').of(Decode.string)
 
@@ -203,7 +202,7 @@ test('Decode.field(name).optional.field(name).of', t => {
   )
 })
 
-test('Decode.optional.field(name).field(name).of', t => {
+test('Decode.optional.field().field().of', t => {
   // Decoder<boolean | null>
   const _0 = Decode.optional.field('_0').field('_1').of(Decode.boolean)
 
@@ -238,7 +237,7 @@ test('Decode.optional.field(name).field(name).of', t => {
   )
 })
 
-test('Decode.optional.field(name).field(name).optional.of', t => {
+test('Decode.optional.field().field().optional.of', t => {
   // Decoder<number | null>
   const _0 = Decode.optional.field('_0').field('_1').optional.of(Decode.int)
 
@@ -284,7 +283,7 @@ test('Decode.optional.field(name).field(name).optional.of', t => {
   )
 })
 
-test('Decode.optional.field(name).optional.field(name).of', t => {
+test('Decode.optional.field().optional.field().of', t => {
   // Decoder<number | null>
   const _0 = Decode.optional.field('_0').optional.field('_1').of(Decode.float)
 
@@ -315,7 +314,7 @@ test('Decode.optional.field(name).optional.field(name).of', t => {
   )
 })
 
-test('Decode.optional.field(name).optional.field(name).optional.of', t => {
+test('Decode.optional.field().optional.field().optional.of', t => {
   // Decoder<string | null>
   const _0 = Decode.optional
     .field('_0')
@@ -363,7 +362,7 @@ test('Decode.optional.field(name).optional.field(name).optional.of', t => {
   )
 })
 
-test('Decode.field(name).index(position).field(name).of', t => {
+test('Decode.field().index().field().of', t => {
   // Decoder<string>
   const _0 = Decode.field('_0').index(0).field('_1').of(Decode.string)
 
@@ -391,7 +390,7 @@ test('Decode.field(name).index(position).field(name).of', t => {
   )
 })
 
-test('Decode.field(name).index(position).field(name).optional.of', t => {
+test('Decode.field().index().field().optional.of', t => {
   // Decoder<number | null>
   const _0 = Decode.field('_0').index(0).field('_1').optional.of(Decode.float)
 
@@ -410,7 +409,7 @@ test('Decode.field(name).index(position).field(name).optional.of', t => {
   )
 })
 
-test('Decode.field(name).index(position).optional.field(name).of', t => {
+test('Decode.field().index().optional.field().of', t => {
   // Decoder<number | null>
   const _0 = Decode.field('_0').index(0).optional.field('_1').of(Decode.float)
 
@@ -429,7 +428,7 @@ test('Decode.field(name).index(position).optional.field(name).of', t => {
   )
 })
 
-test('Decode.field(name).optional.index(position).field(name).of', t => {
+test('Decode.field().optional.index().field().of', t => {
   // Decoder<boolean | null>
   const _0 = Decode.field('_0').optional.index(0).field('_1').of(Decode.boolean)
 
@@ -448,7 +447,7 @@ test('Decode.field(name).optional.index(position).field(name).of', t => {
   )
 })
 
-test('Decode.optional.field(name).index(position).field(name).of', t => {
+test('Decode.optional.field().index().field().of', t => {
   // Decoder<string | null>
   const _0 = Decode.optional.field('_0').index(0).field('_1').of(Decode.string)
 
@@ -462,9 +461,8 @@ test('Decode.optional.field(name).index(position).field(name).of', t => {
   )
 })
 
-test('Decode.optional.field(name).optional.index(position).optional.field(name).optional.of', t => {
+test('Decode.optional.field().optional.index().optional.field().optional.of', t => {
   // Decoder<string | null>
-  // eslint-disable-next-line prettier/prettier
   const _0 = Decode.optional
     .field('_0')
     .optional.index(0)
