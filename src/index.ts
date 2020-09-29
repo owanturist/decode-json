@@ -29,8 +29,8 @@ const isObject = (
 //
 
 export type Result<E, T> =
-  | { error: E; value?: null }
-  | { error?: null; value: T }
+  | { error: E; value?: never }
+  | { error?: never; value: T }
 
 export const Left = <E, T>(error: E): Result<E, T> => ({ error })
 export const Right = <E, T>(value: T): Result<E, T> => ({ value })
