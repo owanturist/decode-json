@@ -96,53 +96,6 @@ test('Decode.field().optional.string', t => {
   t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
 })
 
-test('Decode.optional.field().string', t => {
-  // Decode<string | null>
-  const _0 = Decode.optional.field('_0').string
-
-  t.deepEqual(_0.decode(undefined), Right(null))
-
-  t.deepEqual(_0.decode(null), Right(null))
-
-  t.deepEqual(_0.decode([0]), Left(Optional(JsonValue('OBJECT', [0]))))
-
-  t.deepEqual(_0.decode({}), Right(null))
-
-  t.deepEqual(
-    _0.decode({ _0: null }),
-    Left(Optional(InField('_0', JsonValue('STRING', null))))
-  )
-
-  t.deepEqual(
-    _0.decode({ _0: 1 }),
-    Left(Optional(InField('_0', JsonValue('STRING', 1))))
-  )
-
-  t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
-})
-
-test('Decode.optional.field().optional.string', t => {
-  // Decode<string | null>
-  const _0 = Decode.optional.field('_0').optional.string
-
-  t.deepEqual(_0.decode(undefined), Right(null))
-
-  t.deepEqual(_0.decode(null), Right(null))
-
-  t.deepEqual(_0.decode([0]), Left(Optional(JsonValue('OBJECT', [0]))))
-
-  t.deepEqual(_0.decode({}), Right(null))
-
-  t.deepEqual(_0.decode({ _0: null }), Right(null))
-
-  t.deepEqual(
-    _0.decode({ _0: 1 }),
-    Left(Optional(InField('_0', Optional(JsonValue('STRING', 1)))))
-  )
-
-  t.deepEqual(_0.decode({ _0: 'str' }), Right('str'))
-})
-
 test('Decode.index().string', t => {
   // Decode<string>
   const _0 = Decode.index(1).string
@@ -182,53 +135,6 @@ test('Decode.index().optional.string', t => {
   t.deepEqual(
     _0.decode([0, 1]),
     Left(AtIndex(1, Optional(JsonValue('STRING', 1))))
-  )
-
-  t.deepEqual(_0.decode(['', 'str']), Right('str'))
-})
-
-test('Decode.optional.index().string', t => {
-  // Decode<string | null>
-  const _0 = Decode.optional.index(1).string
-
-  t.deepEqual(_0.decode(undefined), Right(null))
-
-  t.deepEqual(_0.decode(null), Right(null))
-
-  t.deepEqual(_0.decode([]), Right(null))
-
-  t.deepEqual(_0.decode({}), Left(Optional(JsonValue('ARRAY', {}))))
-
-  t.deepEqual(
-    _0.decode([null, null]),
-    Left(Optional(AtIndex(1, JsonValue('STRING', null))))
-  )
-
-  t.deepEqual(
-    _0.decode([0, 1]),
-    Left(Optional(AtIndex(1, JsonValue('STRING', 1))))
-  )
-
-  t.deepEqual(_0.decode(['', 'str']), Right('str'))
-})
-
-test('Decode.optional.index().optional.string', t => {
-  // Decode<string | null>
-  const _0 = Decode.optional.index(1).optional.string
-
-  t.deepEqual(_0.decode(undefined), Right(null))
-
-  t.deepEqual(_0.decode(null), Right(null))
-
-  t.deepEqual(_0.decode([]), Right(null))
-
-  t.deepEqual(_0.decode({}), Left(Optional(JsonValue('ARRAY', {}))))
-
-  t.deepEqual(_0.decode([null, null]), Right(null))
-
-  t.deepEqual(
-    _0.decode([0, 1]),
-    Left(Optional(AtIndex(1, Optional(JsonValue('STRING', 1)))))
   )
 
   t.deepEqual(_0.decode(['', 'str']), Right('str'))
