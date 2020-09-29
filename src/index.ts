@@ -209,7 +209,7 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
   }
 }
 
-class Dict<T> extends Decoder<Record<string, T>> {
+class Rec<T> extends Decoder<Record<string, T>> {
   public constructor(private readonly itemDecoder: Decoder<T>) {
     super()
   }
@@ -324,7 +324,7 @@ interface PathSchema {
   int: unknown
   float: unknown
 
-  dict: unknown
+  record: unknown
   shape: unknown
   list: unknown
   keyValue: unknown
@@ -349,7 +349,7 @@ interface PathInterface<C extends PathSchema> {
   int: C['int']
   float: C['float']
 
-  dict: C['dict']
+  record: C['record']
   shape: C['shape']
   list: C['list']
   keyValue: C['keyValue']
@@ -380,7 +380,7 @@ export type OptionalPath = PathInterface<{
   lazy<T>(createDecoder: () => Decoder<T>): Decoder<null | T>
 
   list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>>
-  dict<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>>
+  record<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>>
   shape<T extends Record<string, unknown>>(
     object: { [K in keyof T]: Decoder<T[K]> }
   ): Decoder<null | T>
@@ -432,8 +432,8 @@ class OptionalImpl implements Optional {
     return this.of(list(itemDecoder))
   }
 
-  public dict<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>> {
-    return this.of(dict(itemDecoder))
+  public record<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>> {
+    return this.of(record(itemDecoder))
   }
 
   public shape<T extends Record<string, unknown>>(
@@ -492,7 +492,7 @@ export type RequiredPath = PathInterface<{
   lazy<T>(createDecoder: () => Decoder<T>): Decoder<T>
 
   list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>>
-  dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>>
+  record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>>
   shape<T extends Record<string, unknown>>(
     object: { [K in keyof T]: Decoder<T[K]> }
   ): Decoder<T>
@@ -555,8 +555,8 @@ class PathImpl implements RequiredPath {
     return this.of(list(itemDecoder))
   }
 
-  public dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
-    return this.of(dict(itemDecoder))
+  public record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
+    return this.of(record(itemDecoder))
   }
 
   public shape<T extends Record<string, unknown>>(
@@ -624,8 +624,8 @@ function succeed<T>(value: T): Decoder<T> {
   return new Succeed(value)
 }
 
-function dict<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
-  return new Dict(itemDecoder)
+function record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
+  return new Rec(itemDecoder)
 }
 
 function shape<T extends Record<string, unknown>>(
@@ -703,7 +703,7 @@ export default {
   fail,
   succeed,
 
-  dict,
+  record,
   shape,
   list,
   keyValue,
