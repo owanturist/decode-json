@@ -118,6 +118,13 @@ class Primitive<T> extends Decoder<T> {
   }
 }
 
+class Unknown extends Decoder<unknown> {
+  // eslint-disable-next-line class-methods-use-this
+  protected run(input: unknown): Result<Err.DecodeError, unknown> {
+    return Right(input)
+  }
+}
+
 class Fail extends Decoder<never> {
   public constructor(private readonly message: string) {
     super()
@@ -592,7 +599,7 @@ class PathImpl implements RequiredPath {
 
 const optional: Optional = new OptionalImpl(decoder => decoder)
 
-const unknown: Decoder<unknown> = null as never
+const unknown: Decoder<unknown> = new Unknown()
 
 const string: Decoder<string> = new Primitive('STRING', isString)
 

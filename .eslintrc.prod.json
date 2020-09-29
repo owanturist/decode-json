@@ -14,7 +14,9 @@
 
       "rules": {
         "no-unused-vars": "off",
-        "@typescript-eslint/no-unused-vars": "error"
+        "@typescript-eslint/no-unused-vars": "error",
+        "ava/no-only-test": "error",
+        "ava/no-skip-test": "error"
       }
     }
   ]

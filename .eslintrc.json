@@ -155,7 +155,10 @@
         "ava/no-ignored-test-files": [
           "error",
           { "extensions": ["ts"], "files": ["tests/**/*.test.ts"] }
-        ]
+        ],
+
+        "ava/no-only-test": "off",
+        "ava/no-skip-test": "off"
       }
     }
   ]
