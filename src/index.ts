@@ -26,6 +26,13 @@ const isObject = (
   return typeof input === 'object' && input !== null && !isArray(input)
 }
 
+const hasOwnProperty = (
+  prop: string,
+  obj: Record<string, unknown>
+): boolean => {
+  return Object.prototype.hasOwnProperty.call(obj, prop)
+}
+
 //
 
 export type Result<E, T> =
@@ -181,7 +188,7 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
     const acc: Array<[K, T]> = []
 
     for (const key in input) {
-      if (Object.prototype.hasOwnProperty.call(input, key)) {
+      if (hasOwnProperty(key, input)) {
         const keyResult = this.convertKey(key)
 
         if (keyResult.error != null) {
@@ -215,7 +222,7 @@ class Dict<T> extends Decoder<Record<string, T>> {
     const acc: Record<string, T> = {}
 
     for (const key in input) {
-      if (Object.prototype.hasOwnProperty.call(input, key)) {
+      if (hasOwnProperty(key, input)) {
         const itemResult = this.itemDecoder.decode(input[key])
 
         if (itemResult.error != null) {
@@ -249,7 +256,7 @@ class RequiredField<T> extends Decoder<T> {
       return Left(Err.JsonValue('OBJECT', input))
     }
 
-    if (!Object.prototype.hasOwnProperty.call(input, this.name)) {
+    if (!hasOwnProperty(this.name, input)) {
       return this.fieldNotDefined(input)
     }
 
