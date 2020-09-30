@@ -51,6 +51,22 @@ test('Decode.record()', t => {
     foo: 123,
     bar: null
   })
+
+  // Decoder<Record<string, number>>
+  const _2 = Decode.record(Decode.field('_0').int)
+
+  t.deepEqual(_2.decode({ foo: { _0: 0 }, bar: { _0: 1 } }).value, {
+    foo: 0,
+    bar: 1
+  })
+
+  // Decoder<Record<string, string>>
+  const _3 = Decode.record(Decode.index(0).string)
+
+  t.deepEqual(_3.decode({ foo: ['f'], bar: ['b'] }).value, {
+    foo: 'f',
+    bar: 'b'
+  })
 })
 
 test('Decode.optional.record()', t => {
@@ -79,18 +95,6 @@ test('Decode.optional.record()', t => {
     _0.decode({ foo: 1.23, bar: undefined }).error,
     Optional(InField('bar', JsonValue('FLOAT', undefined)))
   )
-
-  // Decoder<Record<string, number | null> | null>
-  const _1 = Decode.optional.record(Decode.optional.float)
-
-  t.deepEqual(_1.decode({ foo: 1.23, bar: null }).value, {
-    foo: 1.23,
-    bar: null
-  })
-  t.deepEqual(_1.decode({ foo: 1.23, bar: undefined }).value, {
-    foo: 1.23,
-    bar: null
-  })
 })
 
 test('Decode.field().record()', t => {
