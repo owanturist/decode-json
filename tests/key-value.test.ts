@@ -2,10 +2,10 @@
 
 import test from 'ava'
 
-import Decode, { DecodeResult } from '../src'
+import Decode, { Result } from '../src'
 import { Optional, InField, AtIndex, JsonValue, Failure } from '../src/error'
 
-const toNumber = (key: string): DecodeResult<string, number> => {
+const toNumber = (key: string): Result<string, number> => {
   const id = Number(key)
 
   if (isNaN(id)) {
