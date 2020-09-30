@@ -237,6 +237,33 @@ class Rec<T> extends Decoder<Record<string, T>> {
   }
 }
 
+class List<T> extends Decoder<Array<T>> {
+  public constructor(private readonly itemDecoder: Decoder<T>) {
+    super()
+  }
+
+  protected run(input: unknown): Result<Err.DecodeError, Array<T>> {
+    if (!isArray(input)) {
+      return Left(Err.JsonValue('ARRAY', input))
+    }
+
+    const N = input.length
+    const acc: Array<T> = new Array(N)
+
+    for (let i = 0; i < input.length; i++) {
+      const itemResult = this.itemDecoder.decode(input[i])
+
+      if (itemResult.error != null) {
+        return Left(Err.AtIndex(i, itemResult.error))
+      }
+
+      acc[i] = itemResult.value
+    }
+
+    return Right(acc)
+  }
+}
+
 class RequiredField<T> extends Decoder<T> {
   public constructor(
     private readonly name: string,
@@ -635,7 +662,7 @@ function shape<T extends Record<string, unknown>>(
 }
 
 function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
-  throw new Error(String(itemDecoder))
+  return new List(itemDecoder)
 }
 
 const keyValueHelp = <K, T>(
