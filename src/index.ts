@@ -35,12 +35,14 @@ const hasOwnProperty = (
 
 //
 
-export type Result<E, T> =
+export type DecodeError = Err.DecodeError
+
+export type DecodeResult<E, T> =
   | { error: E; value?: never }
   | { error?: never; value: T }
 
-export const Left = <E, T>(error: E): Result<E, T> => ({ error })
-export const Right = <E, T>(value: T): Result<E, T> => ({ value })
+export const Left = <E, T>(error: E): DecodeResult<E, T> => ({ error })
+export const Right = <E, T>(value: T): DecodeResult<E, T> => ({ value })
 
 export abstract class Decoder<T> {
   public map<R>(fn: (value: T) => R): Decoder<R> {
@@ -51,7 +53,7 @@ export abstract class Decoder<T> {
     return new Chain(fn, this)
   }
 
-  public decodeJSON(json: string): Result<Err.DecodeError, T> {
+  public decodeJSON(json: string): DecodeResult<DecodeError, T> {
     try {
       return this.decode(JSON.parse(json))
     } catch (jsonError) {
@@ -59,7 +61,7 @@ export abstract class Decoder<T> {
     }
   }
 
-  public decode(input: unknown): Result<Err.DecodeError, T> {
+  public decode(input: unknown): DecodeResult<DecodeError, T> {
     try {
       return this.run(input)
     } catch (unknownError) {
@@ -67,7 +69,7 @@ export abstract class Decoder<T> {
     }
   }
 
-  protected abstract run(input: unknown): Result<Err.DecodeError, T>
+  protected abstract run(input: unknown): DecodeResult<DecodeError, T>
 }
 
 class Map<T, R> extends Decoder<R> {
@@ -78,7 +80,7 @@ class Map<T, R> extends Decoder<R> {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, R> {
+  protected run(input: unknown): DecodeResult<DecodeError, R> {
     const result = this.decoder.decode(input)
 
     if (result.error != null) {
@@ -97,7 +99,7 @@ class Chain<T, R> extends Decoder<R> {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, R> {
+  protected run(input: unknown): DecodeResult<DecodeError, R> {
     const result = this.decoder.decode(input)
 
     if (result.error != null) {
@@ -116,7 +118,7 @@ class Primitive<T> extends Decoder<T> {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, T> {
+  protected run(input: unknown): DecodeResult<DecodeError, T> {
     if (this.check(input)) {
       return Right(input)
     }
@@ -127,7 +129,7 @@ class Primitive<T> extends Decoder<T> {
 
 class Unknown extends Decoder<unknown> {
   // eslint-disable-next-line class-methods-use-this
-  protected run(input: unknown): Result<Err.DecodeError, unknown> {
+  protected run(input: unknown): DecodeResult<DecodeError, unknown> {
     return Right(input)
   }
 }
@@ -137,7 +139,7 @@ class Fail extends Decoder<never> {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, never> {
+  protected run(input: unknown): DecodeResult<DecodeError, never> {
     return Left(Err.Failure(this.message, input))
   }
 }
@@ -147,7 +149,7 @@ class Succeed<T> extends Decoder<T> {
     super()
   }
 
-  protected run(): Result<Err.DecodeError, T> {
+  protected run(): DecodeResult<DecodeError, T> {
     return Right(this.value)
   }
 }
@@ -157,7 +159,7 @@ class Nullable<T> extends Decoder<null | T> {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, null | T> {
+  protected run(input: unknown): DecodeResult<DecodeError, null | T> {
     if (input == null) {
       return Right(null)
     }
@@ -174,13 +176,13 @@ class Nullable<T> extends Decoder<null | T> {
 
 class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
   public constructor(
-    private readonly convertKey: (key: string) => Result<string, K>,
+    private readonly convertKey: (key: string) => DecodeResult<string, K>,
     private readonly itemDecoder: Decoder<T>
   ) {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, Array<[K, T]>> {
+  protected run(input: unknown): DecodeResult<DecodeError, Array<[K, T]>> {
     if (!isObject(input)) {
       return Left(Err.JsonValue('OBJECT', input))
     }
@@ -214,7 +216,7 @@ class Rec<T> extends Decoder<Record<string, T>> {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, Record<string, T>> {
+  protected run(input: unknown): DecodeResult<DecodeError, Record<string, T>> {
     if (!isObject(input)) {
       return Left(Err.JsonValue('OBJECT', input))
     }
@@ -242,7 +244,7 @@ class List<T> extends Decoder<Array<T>> {
     super()
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, Array<T>> {
+  protected run(input: unknown): DecodeResult<DecodeError, Array<T>> {
     if (!isArray(input)) {
       return Left(Err.JsonValue('ARRAY', input))
     }
@@ -274,11 +276,11 @@ class RequiredField<T> extends Decoder<T> {
 
   protected fieldNotDefined(
     input: Record<string | number | symbol, unknown>
-  ): Result<Err.DecodeError, T> {
+  ): DecodeResult<DecodeError, T> {
     return Left(Err.RequiredField(this.name, input))
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, T> {
+  protected run(input: unknown): DecodeResult<DecodeError, T> {
     if (!isObject(input)) {
       return Left(Err.JsonValue('OBJECT', input))
     }
@@ -299,7 +301,7 @@ class RequiredField<T> extends Decoder<T> {
 
 class OptionalField<T> extends RequiredField<null | T> {
   // eslint-disable-next-line class-methods-use-this
-  protected fieldNotDefined(): Result<Err.DecodeError, null | T> {
+  protected fieldNotDefined(): DecodeResult<DecodeError, null | T> {
     return Right(null)
   }
 }
@@ -312,11 +314,11 @@ class RequiredIndex<T> extends Decoder<T> {
     super()
   }
 
-  protected outOfRange(input: Array<unknown>): Result<Err.DecodeError, T> {
+  protected outOfRange(input: Array<unknown>): DecodeResult<DecodeError, T> {
     return Left(Err.RequiredIndex(this.position, input))
   }
 
-  protected run(input: unknown): Result<Err.DecodeError, T> {
+  protected run(input: unknown): DecodeResult<DecodeError, T> {
     if (!isArray(input)) {
       return Left(Err.JsonValue('ARRAY', input))
     }
@@ -337,7 +339,7 @@ class RequiredIndex<T> extends Decoder<T> {
 
 class OptionalIndex<T> extends RequiredIndex<null | T> {
   // eslint-disable-next-line class-methods-use-this
-  protected outOfRange(): Result<Err.DecodeError, null | T> {
+  protected outOfRange(): DecodeResult<DecodeError, null | T> {
     return Right(null)
   }
 }
@@ -414,7 +416,7 @@ export type OptionalPath = PathInterface<{
 
   keyValue<T>(itemDecoder: Decoder<T>): Decoder<null | Array<[string, T]>>
   keyValue<K, T>(
-    convertKey: (key: string) => Result<string, K>,
+    convertKey: (key: string) => DecodeResult<string, K>,
     itemDecoder: Decoder<T>
   ): Decoder<null | Array<[K, T]>>
 
@@ -470,7 +472,9 @@ class OptionalImpl implements Optional {
   }
 
   public keyValue<K, T>(
-    ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+    ...args:
+      | [Decoder<T>]
+      | [(key: string) => DecodeResult<string, K>, Decoder<T>]
   ): Decoder<null | Array<[K | string, T]>> {
     return this.of(keyValueHelp(...args))
   }
@@ -526,7 +530,7 @@ export type RequiredPath = PathInterface<{
 
   keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
   keyValue<K, T>(
-    convertKey: (key: string) => Result<string, K>,
+    convertKey: (key: string) => DecodeResult<string, K>,
     itemDecoder: Decoder<T>
   ): Decoder<Array<[K, T]>>
 
@@ -593,7 +597,9 @@ class PathImpl implements RequiredPath {
   }
 
   public keyValue<K, T>(
-    ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+    ...args:
+      | [Decoder<T>]
+      | [(key: string) => DecodeResult<string, K>, Decoder<T>]
   ): Decoder<Array<[K | string, T]>> {
     return this.of(keyValueHelp(...args))
   }
@@ -666,7 +672,7 @@ function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
 }
 
 const keyValueHelp = <K, T>(
-  ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+  ...args: [Decoder<T>] | [(key: string) => DecodeResult<string, K>, Decoder<T>]
 ): Decoder<Array<[K | string, T]>> => {
   const [convertKey, itemDecoder] = args.length === 1 ? [Right, args[0]] : args
 
@@ -675,11 +681,11 @@ const keyValueHelp = <K, T>(
 
 function keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
 function keyValue<K, T>(
-  convertKey: (key: string) => Result<string, K>,
+  convertKey: (key: string) => DecodeResult<string, K>,
   itemDecoder: Decoder<T>
 ): Decoder<Array<[K, T]>>
 function keyValue<K, T>(
-  ...args: [Decoder<T>] | [(key: string) => Result<string, K>, Decoder<T>]
+  ...args: [Decoder<T>] | [(key: string) => DecodeResult<string, K>, Decoder<T>]
 ): Decoder<Array<[K | string, T]>> {
   return keyValueHelp(...args)
 }
