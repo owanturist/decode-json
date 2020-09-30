@@ -290,6 +290,28 @@ class List<T> extends Decoder<Array<T>> {
   }
 }
 
+class OneOf<T> extends Decoder<T> {
+  public constructor(private readonly options: Array<Decoder<T>>) {
+    super()
+  }
+
+  protected run(input: unknown): Result<DecodeError, T> {
+    const errors: Array<DecodeError> = []
+
+    for (const option of this.options) {
+      const optionResult = option.decode(input)
+
+      if (optionResult.error == null) {
+        return optionResult
+      }
+
+      errors.push(optionResult.error)
+    }
+
+    return Left(Err.OneOf(errors))
+  }
+}
+
 class RequiredField<T> extends Decoder<T> {
   public constructor(
     private readonly name: string,
@@ -447,7 +469,7 @@ export type OptionalPath = PathInterface<{
     itemDecoder: Decoder<T>
   ): Decoder<null | Array<[K, T]>>
 
-  oneOf<T>(decoders: Array<Decoder<T>>): Decoder<null | T>
+  oneOf<T>(options: Array<Decoder<T>>): Decoder<null | T>
   enums<T>(
     variants: Array<[string | number | boolean | null, T]>
   ): Decoder<null | T>
@@ -504,8 +526,8 @@ class OptionalImpl implements Optional {
     return this.of(keyValueHelp(...args))
   }
 
-  public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<null | T> {
-    return this.of(oneOf(decoders))
+  public oneOf<T>(options: Array<Decoder<T>>): Decoder<null | T> {
+    return this.of(oneOf(options))
   }
 
   public enums<T>(
@@ -559,7 +581,7 @@ export type RequiredPath = PathInterface<{
     itemDecoder: Decoder<T>
   ): Decoder<Array<[K, T]>>
 
-  oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T>
+  oneOf<T>(options: Array<Decoder<T>>): Decoder<T>
   enums<T>(variants: Array<[string | number | boolean | null, T]>): Decoder<T>
 
   field(name: string): RequiredPath
@@ -627,8 +649,8 @@ class PathImpl implements RequiredPath {
     return this.of(keyValueHelp(...args))
   }
 
-  public oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T> {
-    return this.of(oneOf(decoders))
+  public oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
+    return this.of(oneOf(options))
   }
 
   public enums<T>(
@@ -713,8 +735,8 @@ function keyValue<K, T>(
   return keyValueHelp(...args)
 }
 
-function oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T> {
-  throw new Error(String(decoders))
+function oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
+  return new OneOf(options)
 }
 
 function enums<T>(
