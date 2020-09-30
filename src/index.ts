@@ -684,10 +684,6 @@ function keyValue<K, T>(
   return keyValueHelp(...args)
 }
 
-function of<T>(decoder: Decoder<T>): Decoder<T> {
-  throw new Error(String(decoder))
-}
-
 function oneOf<T>(decoders: Array<Decoder<T>>): Decoder<T> {
   throw new Error(String(decoders))
 }
@@ -735,7 +731,6 @@ export default {
   list,
   keyValue,
 
-  of,
   oneOf,
   enums,
 
