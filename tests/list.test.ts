@@ -3,7 +3,13 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, InField, AtIndex, JsonValue } from '../src/error'
+import {
+  Optional,
+  InField,
+  AtIndex,
+  ExpectArray,
+  ExpectInt
+} from '../src/error'
 
 test('Decode.list()', t => {
   // Decoder<number[]>
@@ -12,23 +18,17 @@ test('Decode.list()', t => {
   t.deepEqual(_0.decode([]).value, [])
   t.deepEqual(_0.decode([1, 3, 2]).value, [1, 3, 2])
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('ARRAY', undefined))
-  t.deepEqual(_0.decode(null).error, JsonValue('ARRAY', null))
-  t.deepEqual(_0.decode('str').error, JsonValue('ARRAY', 'str'))
-  t.deepEqual(_0.decode(1).error, JsonValue('ARRAY', 1))
-  t.deepEqual(_0.decode(1.1).error, JsonValue('ARRAY', 1.1))
-  t.deepEqual(_0.decode({}).error, JsonValue('ARRAY', {}))
-  t.deepEqual(
-    _0.decode([1, false, 2]).error,
-    AtIndex(1, JsonValue('INT', false))
-  )
-  t.deepEqual(
-    _0.decode([1, 3, null, 4]).error,
-    AtIndex(2, JsonValue('INT', null))
-  )
+  t.deepEqual(_0.decode(undefined).error, ExpectArray(undefined))
+  t.deepEqual(_0.decode(null).error, ExpectArray(null))
+  t.deepEqual(_0.decode('str').error, ExpectArray('str'))
+  t.deepEqual(_0.decode(1).error, ExpectArray(1))
+  t.deepEqual(_0.decode(1.1).error, ExpectArray(1.1))
+  t.deepEqual(_0.decode({}).error, ExpectArray({}))
+  t.deepEqual(_0.decode([1, false, 2]).error, AtIndex(1, ExpectInt(false)))
+  t.deepEqual(_0.decode([1, 3, null, 4]).error, AtIndex(2, ExpectInt(null)))
   t.deepEqual(
     _0.decode([undefined, 2, 1]).error,
-    AtIndex(0, JsonValue('INT', undefined))
+    AtIndex(0, ExpectInt(undefined))
   )
 
   // Decoder<(number | null)[]>
@@ -57,21 +57,21 @@ test('Decode.optional.list()', t => {
   t.deepEqual(_0.decode([]).value, [])
   t.deepEqual(_0.decode([1, 3, 2]).value, [1, 3, 2])
 
-  t.deepEqual(_0.decode('str').error, Optional(JsonValue('ARRAY', 'str')))
-  t.deepEqual(_0.decode(1).error, Optional(JsonValue('ARRAY', 1)))
-  t.deepEqual(_0.decode(1.1).error, Optional(JsonValue('ARRAY', 1.1)))
-  t.deepEqual(_0.decode({}).error, Optional(JsonValue('ARRAY', {})))
+  t.deepEqual(_0.decode('str').error, Optional(ExpectArray('str')))
+  t.deepEqual(_0.decode(1).error, Optional(ExpectArray(1)))
+  t.deepEqual(_0.decode(1.1).error, Optional(ExpectArray(1.1)))
+  t.deepEqual(_0.decode({}).error, Optional(ExpectArray({})))
   t.deepEqual(
     _0.decode([1, false, 2]).error,
-    Optional(AtIndex(1, JsonValue('INT', false)))
+    Optional(AtIndex(1, ExpectInt(false)))
   )
   t.deepEqual(
     _0.decode([1, 3, null, 4]).error,
-    Optional(AtIndex(2, JsonValue('INT', null)))
+    Optional(AtIndex(2, ExpectInt(null)))
   )
   t.deepEqual(
     _0.decode([undefined, 2, 1]).error,
-    Optional(AtIndex(0, JsonValue('INT', undefined)))
+    Optional(AtIndex(0, ExpectInt(undefined)))
   )
 })
 
@@ -81,14 +81,8 @@ test('Decode.field().list()', t => {
 
   t.deepEqual(_0.decode({ _0: ['bar', 'baz'] }).value, ['bar', 'baz'])
 
-  t.deepEqual(
-    _0.decode({ _0: null }).error,
-    InField('_0', JsonValue('ARRAY', null))
-  )
-  t.deepEqual(
-    _0.decode({ _0: {} }).error,
-    InField('_0', JsonValue('ARRAY', {}))
-  )
+  t.deepEqual(_0.decode({ _0: null }).error, InField('_0', ExpectArray(null)))
+  t.deepEqual(_0.decode({ _0: {} }).error, InField('_0', ExpectArray({})))
 })
 
 test('Decode.field().optional.list()', t => {
@@ -101,7 +95,7 @@ test('Decode.field().optional.list()', t => {
 
   t.deepEqual(
     _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(JsonValue('ARRAY', 'str')))
+    InField('_0', Optional(ExpectArray('str')))
   )
 })
 
@@ -111,8 +105,8 @@ test('Decode.index().list()', t => {
 
   t.deepEqual(_0.decode([0, [1, 2, 3]]).value, [1, 2, 3])
 
-  t.deepEqual(_0.decode([0, null]).error, AtIndex(1, JsonValue('ARRAY', null)))
-  t.deepEqual(_0.decode(['', {}]).error, AtIndex(1, JsonValue('ARRAY', {})))
+  t.deepEqual(_0.decode([0, null]).error, AtIndex(1, ExpectArray(null)))
+  t.deepEqual(_0.decode(['', {}]).error, AtIndex(1, ExpectArray({})))
 })
 
 test('Decode.index().optional.list()', t => {
@@ -123,8 +117,5 @@ test('Decode.index().optional.list()', t => {
   t.is(_0.decode([0, null]).value, null)
   t.deepEqual(_0.decode([0, [1.2, 3.4]]).value, [1.2, 3.4])
 
-  t.deepEqual(
-    _0.decode(['', {}]).error,
-    AtIndex(1, Optional(JsonValue('ARRAY', {})))
-  )
+  t.deepEqual(_0.decode(['', {}]).error, AtIndex(1, Optional(ExpectArray({}))))
 })

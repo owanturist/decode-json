@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode, { Decoder } from '../src'
-import { InField, JsonValue, RequiredField } from '../src/error'
+import { InField, RequiredField, ExpectInt } from '../src/error'
 
 interface Message {
   content: string
@@ -178,8 +178,5 @@ test('Decode.optional.lazy()', t => {
     _0.decode({ k: 0, l: null }).error,
     RequiredField('r', { k: 0, l: null })
   )
-  t.deepEqual(
-    _0.decode({ k: false }).error,
-    InField('k', JsonValue('INT', false))
-  )
+  t.deepEqual(_0.decode({ k: false }).error, InField('k', ExpectInt(false)))
 })

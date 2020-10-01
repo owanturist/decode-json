@@ -3,7 +3,16 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, InField, RequiredField, JsonValue } from '../src/error'
+import {
+  Optional,
+  InField,
+  RequiredField,
+  ExpectObject,
+  ExpectString,
+  ExpectInt,
+  ExpectFloat,
+  ExpectBoolean
+} from '../src/error'
 
 test('Decode.field().of', t => {
   // Decode<string>
@@ -11,15 +20,12 @@ test('Decode.field().of', t => {
 
   t.is(_0.decode({ _0: 'str' }).value, 'str')
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('OBJECT', undefined))
-  t.deepEqual(_0.decode(null).error, JsonValue('OBJECT', null))
-  t.deepEqual(_0.decode([0]).error, JsonValue('OBJECT', [0]))
+  t.deepEqual(_0.decode(undefined).error, ExpectObject(undefined))
+  t.deepEqual(_0.decode(null).error, ExpectObject(null))
+  t.deepEqual(_0.decode([0]).error, ExpectObject([0]))
   t.deepEqual(_0.decode({ _1: 0 }).error, RequiredField('_0', { _1: 0 }))
-  t.deepEqual(
-    _0.decode({ _0: null }).error,
-    InField('_0', JsonValue('STRING', null))
-  )
-  t.deepEqual(_0.decode({ _0: 1 }).error, InField('_0', JsonValue('STRING', 1)))
+  t.deepEqual(_0.decode({ _0: null }).error, InField('_0', ExpectString(null)))
+  t.deepEqual(_0.decode({ _0: 1 }).error, InField('_0', ExpectString(1)))
 })
 
 test('Decode.field().optional.of', t => {
@@ -30,13 +36,13 @@ test('Decode.field().optional.of', t => {
   t.is(_0.decode({ _0: undefined }).value, null)
   t.is(_0.decode({ _0: 2 }).value, 2)
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('OBJECT', undefined))
-  t.deepEqual(_0.decode(null).error, JsonValue('OBJECT', null))
-  t.deepEqual(_0.decode([0]).error, JsonValue('OBJECT', [0]))
+  t.deepEqual(_0.decode(undefined).error, ExpectObject(undefined))
+  t.deepEqual(_0.decode(null).error, ExpectObject(null))
+  t.deepEqual(_0.decode([0]).error, ExpectObject([0]))
   t.deepEqual(_0.decode({ _1: 0 }).error, RequiredField('_0', { _1: 0 }))
   t.deepEqual(
     _0.decode({ _0: 1.23 }).error,
-    InField('_0', Optional(JsonValue('INT', 1.23)))
+    InField('_0', Optional(ExpectInt(1.23)))
   )
 })
 
@@ -49,14 +55,14 @@ test('Decode.optional.field().of', t => {
   t.is(_0.decode({}).value, null)
   t.is(_0.decode({ _0: false }).value, false)
 
-  t.deepEqual(_0.decode([0]).error, Optional(JsonValue('OBJECT', [0])))
+  t.deepEqual(_0.decode([0]).error, Optional(ExpectObject([0])))
   t.deepEqual(
     _0.decode({ _0: null }).error,
-    Optional(InField('_0', JsonValue('BOOLEAN', null)))
+    Optional(InField('_0', ExpectBoolean(null)))
   )
   t.deepEqual(
     _0.decode({ _0: 1 }).error,
-    Optional(InField('_0', JsonValue('BOOLEAN', 1)))
+    Optional(InField('_0', ExpectBoolean(1)))
   )
 })
 
@@ -71,10 +77,10 @@ test('Decode.optional.field().optional.of', t => {
   t.is(_0.decode({ _0: undefined }).value, null)
   t.is(_0.decode({ _0: 2.23 }).value, 2.23)
 
-  t.deepEqual(_0.decode([0]).error, Optional(JsonValue('OBJECT', [0])))
+  t.deepEqual(_0.decode([0]).error, Optional(ExpectObject([0])))
   t.deepEqual(
     _0.decode({ _0: false }).error,
-    Optional(InField('_0', Optional(JsonValue('FLOAT', false))))
+    Optional(InField('_0', Optional(ExpectFloat(false))))
   )
 })
 
@@ -84,18 +90,15 @@ test('Decode.field().field().of', t => {
 
   t.is(_0.decode({ _0: { _1: 'str' } }).value, 'str')
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('OBJECT', undefined))
-  t.deepEqual(
-    _0.decode({ _0: null }).error,
-    InField('_0', JsonValue('OBJECT', null))
-  )
+  t.deepEqual(_0.decode(undefined).error, ExpectObject(undefined))
+  t.deepEqual(_0.decode({ _0: null }).error, InField('_0', ExpectObject(null)))
   t.deepEqual(
     _0.decode({ _0: {} }).error,
     InField('_0', RequiredField('_1', {}))
   )
   t.deepEqual(
     _0.decode({ _0: { _1: null } }).error,
-    InField('_0', InField('_1', JsonValue('STRING', null)))
+    InField('_0', InField('_1', ExpectString(null)))
   )
 })
 
@@ -107,11 +110,8 @@ test('Decode.field().field().optional.of', t => {
   t.is(_0.decode({ _0: { _1: undefined } }).value, null)
   t.is(_0.decode({ _0: { _1: 'str' } }).value, 'str')
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('OBJECT', undefined))
-  t.deepEqual(
-    _0.decode({ _0: null }).error,
-    InField('_0', JsonValue('OBJECT', null))
-  )
+  t.deepEqual(_0.decode(undefined).error, ExpectObject(undefined))
+  t.deepEqual(_0.decode({ _0: null }).error, InField('_0', ExpectObject(null)))
   t.deepEqual(
     _0.decode({ _0: {} }).error,
     InField('_0', RequiredField('_1', {}))
@@ -127,11 +127,11 @@ test('Decode.field().optional.field().of', t => {
   t.is(_0.decode({ _0: {} }).value, null)
   t.is(_0.decode({ _0: { _1: 'str' } }).value, 'str')
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('OBJECT', undefined))
+  t.deepEqual(_0.decode(undefined).error, ExpectObject(undefined))
 
   t.deepEqual(
     _0.decode({ _0: { _1: null } }).error,
-    InField('_0', Optional(InField('_1', JsonValue('STRING', null))))
+    InField('_0', Optional(InField('_1', ExpectString(null))))
   )
 })
 
@@ -146,7 +146,7 @@ test('Decode.optional.field().field().of', t => {
 
   t.deepEqual(
     _0.decode({ _0: null }).error,
-    Optional(InField('_0', JsonValue('OBJECT', null)))
+    Optional(InField('_0', ExpectObject(null)))
   )
   t.deepEqual(
     _0.decode({ _0: {} }).error,
@@ -154,7 +154,7 @@ test('Decode.optional.field().field().of', t => {
   )
   t.deepEqual(
     _0.decode({ _0: { _1: null } }).error,
-    Optional(InField('_0', InField('_1', JsonValue('BOOLEAN', null))))
+    Optional(InField('_0', InField('_1', ExpectBoolean(null))))
   )
 })
 
@@ -171,7 +171,7 @@ test('Decode.optional.field().field().optional.of', t => {
 
   t.deepEqual(
     _0.decode({ _0: null }).error,
-    Optional(InField('_0', JsonValue('OBJECT', null)))
+    Optional(InField('_0', ExpectObject(null)))
   )
   t.deepEqual(
     _0.decode({ _0: {} }).error,
@@ -179,7 +179,7 @@ test('Decode.optional.field().field().optional.of', t => {
   )
   t.deepEqual(
     _0.decode({ _0: { _1: 'str' } }).error,
-    Optional(InField('_0', InField('_1', Optional(JsonValue('INT', 'str')))))
+    Optional(InField('_0', InField('_1', Optional(ExpectInt('str')))))
   )
 })
 
@@ -197,7 +197,7 @@ test('Decode.optional.field().optional.field().of', t => {
 
   t.deepEqual(
     _0.decode({ _0: { _1: null } }).error,
-    Optional(InField('_0', Optional(InField('_1', JsonValue('FLOAT', null)))))
+    Optional(InField('_0', Optional(InField('_1', ExpectFloat(null)))))
   )
 })
 
@@ -221,7 +221,7 @@ test('Decode.optional.field().optional.field().optional.of', t => {
   t.deepEqual(
     _0.decode({ _0: { _1: 123 } }).error,
     Optional(
-      InField('_0', Optional(InField('_1', Optional(JsonValue('STRING', 123)))))
+      InField('_0', Optional(InField('_1', Optional(ExpectString(123)))))
     )
   )
 })

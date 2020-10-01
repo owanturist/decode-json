@@ -3,7 +3,14 @@
 import test from 'ava'
 
 import Decode, { Result } from '../src'
-import { Optional, InField, AtIndex, JsonValue, Failure } from '../src/error'
+import {
+  Optional,
+  InField,
+  AtIndex,
+  Failure,
+  ExpectObject,
+  ExpectInt
+} from '../src/error'
 
 const toNumber = (key: string): Result<string, number> => {
   const id = Number(key)
@@ -26,23 +33,23 @@ test('Decode.keyValue()', t => {
     ['2', 2]
   ])
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('OBJECT', undefined))
-  t.deepEqual(_0.decode(null).error, JsonValue('OBJECT', null))
-  t.deepEqual(_0.decode('str').error, JsonValue('OBJECT', 'str'))
-  t.deepEqual(_0.decode(1).error, JsonValue('OBJECT', 1))
-  t.deepEqual(_0.decode(1.1).error, JsonValue('OBJECT', 1.1))
-  t.deepEqual(_0.decode([]).error, JsonValue('OBJECT', []))
+  t.deepEqual(_0.decode(undefined).error, ExpectObject(undefined))
+  t.deepEqual(_0.decode(null).error, ExpectObject(null))
+  t.deepEqual(_0.decode('str').error, ExpectObject('str'))
+  t.deepEqual(_0.decode(1).error, ExpectObject(1))
+  t.deepEqual(_0.decode(1.1).error, ExpectObject(1.1))
+  t.deepEqual(_0.decode([]).error, ExpectObject([]))
   t.deepEqual(
     _0.decode({ _0: 1, _1: false, _2: 2 }).error,
-    InField('_1', JsonValue('INT', false))
+    InField('_1', ExpectInt(false))
   )
   t.deepEqual(
     _0.decode({ _0: 1, _1: 3, _2: null }).error,
-    InField('_2', JsonValue('INT', null))
+    InField('_2', ExpectInt(null))
   )
   t.deepEqual(
     _0.decode({ _0: undefined, _1: 3, _2: 2 }).error,
-    InField('_0', JsonValue('INT', undefined))
+    InField('_0', ExpectInt(undefined))
   )
 
   // Decoder<[string, number | null][]>
@@ -101,21 +108,21 @@ test('Decode.optional.keyValue()', t => {
     ['2', 2]
   ])
 
-  t.deepEqual(_0.decode('str').error, Optional(JsonValue('OBJECT', 'str')))
-  t.deepEqual(_0.decode(1).error, Optional(JsonValue('OBJECT', 1)))
-  t.deepEqual(_0.decode(1.1).error, Optional(JsonValue('OBJECT', 1.1)))
-  t.deepEqual(_0.decode([]).error, Optional(JsonValue('OBJECT', [])))
+  t.deepEqual(_0.decode('str').error, Optional(ExpectObject('str')))
+  t.deepEqual(_0.decode(1).error, Optional(ExpectObject(1)))
+  t.deepEqual(_0.decode(1.1).error, Optional(ExpectObject(1.1)))
+  t.deepEqual(_0.decode([]).error, Optional(ExpectObject([])))
   t.deepEqual(
     _0.decode({ _0: 1, _1: false, _2: 2 }).error,
-    Optional(InField('_1', JsonValue('INT', false)))
+    Optional(InField('_1', ExpectInt(false)))
   )
   t.deepEqual(
     _0.decode({ _0: 1, _1: 3, _2: null }).error,
-    Optional(InField('_2', JsonValue('INT', null)))
+    Optional(InField('_2', ExpectInt(null)))
   )
   t.deepEqual(
     _0.decode({ _0: undefined, _1: 3, _2: 2 }).error,
-    Optional(InField('_0', JsonValue('INT', undefined)))
+    Optional(InField('_0', ExpectInt(undefined)))
   )
 
   // Decoder<[number, string][] | null>
@@ -141,14 +148,8 @@ test('Decode.field().keyValue()', t => {
     ['2', 'c']
   ])
 
-  t.deepEqual(
-    _0.decode({ _0: null }).error,
-    InField('_0', JsonValue('OBJECT', null))
-  )
-  t.deepEqual(
-    _0.decode({ _0: [] }).error,
-    InField('_0', JsonValue('OBJECT', []))
-  )
+  t.deepEqual(_0.decode({ _0: null }).error, InField('_0', ExpectObject(null)))
+  t.deepEqual(_0.decode({ _0: [] }).error, InField('_0', ExpectObject([])))
 
   // Decoder<[number, boolean][] | null>
   const _1 = Decode.field('_0').keyValue(toNumber, Decode.boolean)
@@ -176,7 +177,7 @@ test('Decode.field().optional.keyValue()', t => {
 
   t.deepEqual(
     _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(JsonValue('OBJECT', 'str')))
+    InField('_0', Optional(ExpectObject('str')))
   )
 
   // Decoder<[number, string][] | null>
@@ -202,8 +203,8 @@ test('Decode.index().keyValue()', t => {
     ['2', 'c']
   ])
 
-  t.deepEqual(_0.decode([0, null]).error, AtIndex(1, JsonValue('OBJECT', null)))
-  t.deepEqual(_0.decode(['', []]).error, AtIndex(1, JsonValue('OBJECT', [])))
+  t.deepEqual(_0.decode([0, null]).error, AtIndex(1, ExpectObject(null)))
+  t.deepEqual(_0.decode(['', []]).error, AtIndex(1, ExpectObject([])))
 
   // Decoder<[number, boolean][] | null>
   const _1 = Decode.index(0).keyValue(toNumber, Decode.boolean)
@@ -231,7 +232,7 @@ test('Decode.index().optional.keyValue()', t => {
 
   t.deepEqual(
     _0.decode([null, 'str']).error,
-    AtIndex(1, Optional(JsonValue('OBJECT', 'str')))
+    AtIndex(1, Optional(ExpectObject('str')))
   )
 
   // Decoder<[number, string][] | null>

@@ -3,19 +3,16 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, InField, AtIndex, JsonValue } from '../src/error'
+import { Optional, InField, AtIndex, ExpectFloat } from '../src/error'
 
 test('Decode.float', t => {
   t.is(Decode.float.decode(1).value, 1)
   t.is(Decode.float.decode(1.1).value, 1.1)
 
-  t.deepEqual(
-    Decode.float.decode(undefined).error,
-    JsonValue('FLOAT', undefined)
-  )
-  t.deepEqual(Decode.float.decode(null).error, JsonValue('FLOAT', null))
-  t.deepEqual(Decode.float.decode('str').error, JsonValue('FLOAT', 'str'))
-  t.deepEqual(Decode.float.decode(true).error, JsonValue('FLOAT', true))
+  t.deepEqual(Decode.float.decode(undefined).error, ExpectFloat(undefined))
+  t.deepEqual(Decode.float.decode(null).error, ExpectFloat(null))
+  t.deepEqual(Decode.float.decode('str').error, ExpectFloat('str'))
+  t.deepEqual(Decode.float.decode(true).error, ExpectFloat(true))
 })
 
 test('Decode.optional.float', t => {
@@ -26,11 +23,11 @@ test('Decode.optional.float', t => {
 
   t.deepEqual(
     Decode.optional.float.decode('str').error,
-    Optional(JsonValue('FLOAT', 'str'))
+    Optional(ExpectFloat('str'))
   )
   t.deepEqual(
     Decode.optional.float.decode(true).error,
-    Optional(JsonValue('FLOAT', true))
+    Optional(ExpectFloat(true))
   )
 })
 
@@ -40,14 +37,8 @@ test('Decode.field().float', t => {
 
   t.is(_0.decode({ _0: 1 }).value, 1)
 
-  t.deepEqual(
-    _0.decode({ _0: null }).error,
-    InField('_0', JsonValue('FLOAT', null))
-  )
-  t.deepEqual(
-    _0.decode({ _0: 'str' }).error,
-    InField('_0', JsonValue('FLOAT', 'str'))
-  )
+  t.deepEqual(_0.decode({ _0: null }).error, InField('_0', ExpectFloat(null)))
+  t.deepEqual(_0.decode({ _0: 'str' }).error, InField('_0', ExpectFloat('str')))
 })
 
 test('Decode.field().optional.float', t => {
@@ -59,7 +50,7 @@ test('Decode.field().optional.float', t => {
 
   t.deepEqual(
     _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(JsonValue('FLOAT', 'str')))
+    InField('_0', Optional(ExpectFloat('str')))
   )
 })
 
@@ -69,11 +60,8 @@ test('Decode.index().float', t => {
 
   t.is(_0.decode([0, 1]).value, 1)
 
-  t.deepEqual(_0.decode(['', null]).error, AtIndex(1, JsonValue('FLOAT', null)))
-  t.deepEqual(
-    _0.decode(['', 'str']).error,
-    AtIndex(1, JsonValue('FLOAT', 'str'))
-  )
+  t.deepEqual(_0.decode(['', null]).error, AtIndex(1, ExpectFloat(null)))
+  t.deepEqual(_0.decode(['', 'str']).error, AtIndex(1, ExpectFloat('str')))
 })
 
 test('Decode.index().optional.float', t => {
@@ -85,6 +73,6 @@ test('Decode.index().optional.float', t => {
 
   t.deepEqual(
     _0.decode(['', 'str']).error,
-    AtIndex(1, Optional(JsonValue('FLOAT', 'str')))
+    AtIndex(1, Optional(ExpectFloat('str')))
   )
 })

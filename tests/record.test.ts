@@ -3,7 +3,14 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, InField, AtIndex, JsonValue } from '../src/error'
+import {
+  Optional,
+  InField,
+  AtIndex,
+  ExpectObject,
+  ExpectInt,
+  ExpectFloat
+} from '../src/error'
 
 test('Decode.record()', t => {
   class Foo {
@@ -24,23 +31,23 @@ test('Decode.record()', t => {
   t.deepEqual(_0.decode({ foo: 123, bar: 456 }).value, { foo: 123, bar: 456 })
   t.deepEqual(_0.decode(new Foo()).value, { pub: 1, prot: 2, priv: 3 })
 
-  t.deepEqual(_0.decode(undefined).error, JsonValue('OBJECT', undefined))
-  t.deepEqual(_0.decode(null).error, JsonValue('OBJECT', null))
-  t.deepEqual(_0.decode('str').error, JsonValue('OBJECT', 'str'))
-  t.deepEqual(_0.decode(1).error, JsonValue('OBJECT', 1))
-  t.deepEqual(_0.decode(1.1).error, JsonValue('OBJECT', 1.1))
-  t.deepEqual(_0.decode([]).error, JsonValue('OBJECT', []))
+  t.deepEqual(_0.decode(undefined).error, ExpectObject(undefined))
+  t.deepEqual(_0.decode(null).error, ExpectObject(null))
+  t.deepEqual(_0.decode('str').error, ExpectObject('str'))
+  t.deepEqual(_0.decode(1).error, ExpectObject(1))
+  t.deepEqual(_0.decode(1.1).error, ExpectObject(1.1))
+  t.deepEqual(_0.decode([]).error, ExpectObject([]))
   t.deepEqual(
     _0.decode({ foo: 123, bar: false }).error,
-    InField('bar', JsonValue('INT', false))
+    InField('bar', ExpectInt(false))
   )
   t.deepEqual(
     _0.decode({ foo: 123, bar: null }).error,
-    InField('bar', JsonValue('INT', null))
+    InField('bar', ExpectInt(null))
   )
   t.deepEqual(
     _0.decode({ foo: 123, bar: undefined }).error,
-    InField('bar', JsonValue('INT', undefined))
+    InField('bar', ExpectInt(undefined))
   )
 
   // Decoder<Record<string, number | null>>
@@ -79,21 +86,21 @@ test('Decode.optional.record()', t => {
   t.deepEqual(_0.decode({ 0: 1.23, 1: 4.56 }).value, { 0: 1.23, 1: 4.56 })
   t.deepEqual(_0.decode({ foo: 1.2, bar: 3.4 }).value, { foo: 1.2, bar: 3.4 })
 
-  t.deepEqual(_0.decode('str').error, Optional(JsonValue('OBJECT', 'str')))
-  t.deepEqual(_0.decode(1).error, Optional(JsonValue('OBJECT', 1)))
-  t.deepEqual(_0.decode(1.1).error, Optional(JsonValue('OBJECT', 1.1)))
-  t.deepEqual(_0.decode([]).error, Optional(JsonValue('OBJECT', [])))
+  t.deepEqual(_0.decode('str').error, Optional(ExpectObject('str')))
+  t.deepEqual(_0.decode(1).error, Optional(ExpectObject(1)))
+  t.deepEqual(_0.decode(1.1).error, Optional(ExpectObject(1.1)))
+  t.deepEqual(_0.decode([]).error, Optional(ExpectObject([])))
   t.deepEqual(
     _0.decode({ foo: 1.23, bar: false }).error,
-    Optional(InField('bar', JsonValue('FLOAT', false)))
+    Optional(InField('bar', ExpectFloat(false)))
   )
   t.deepEqual(
     _0.decode({ foo: 1.23, bar: null }).error,
-    Optional(InField('bar', JsonValue('FLOAT', null)))
+    Optional(InField('bar', ExpectFloat(null)))
   )
   t.deepEqual(
     _0.decode({ foo: 1.23, bar: undefined }).error,
-    Optional(InField('bar', JsonValue('FLOAT', undefined)))
+    Optional(InField('bar', ExpectFloat(undefined)))
   )
 })
 
@@ -103,14 +110,8 @@ test('Decode.field().record()', t => {
 
   t.deepEqual(_0.decode({ _0: { foo: 'bar' } }).value, { foo: 'bar' })
 
-  t.deepEqual(
-    _0.decode({ _0: null }).error,
-    InField('_0', JsonValue('OBJECT', null))
-  )
-  t.deepEqual(
-    _0.decode({ _0: [] }).error,
-    InField('_0', JsonValue('OBJECT', []))
-  )
+  t.deepEqual(_0.decode({ _0: null }).error, InField('_0', ExpectObject(null)))
+  t.deepEqual(_0.decode({ _0: [] }).error, InField('_0', ExpectObject([])))
 })
 
 test('Decode.field().optional.record()', t => {
@@ -123,7 +124,7 @@ test('Decode.field().optional.record()', t => {
 
   t.deepEqual(
     _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(JsonValue('OBJECT', 'str')))
+    InField('_0', Optional(ExpectObject('str')))
   )
 })
 
@@ -133,8 +134,8 @@ test('Decode.index().record()', t => {
 
   t.deepEqual(_0.decode([0, { foo: 123 }]).value, { foo: 123 })
 
-  t.deepEqual(_0.decode([0, null]).error, AtIndex(1, JsonValue('OBJECT', null)))
-  t.deepEqual(_0.decode(['', []]).error, AtIndex(1, JsonValue('OBJECT', [])))
+  t.deepEqual(_0.decode([0, null]).error, AtIndex(1, ExpectObject(null)))
+  t.deepEqual(_0.decode(['', []]).error, AtIndex(1, ExpectObject([])))
 })
 
 test('Decode.index().optional.record()', t => {
@@ -145,8 +146,5 @@ test('Decode.index().optional.record()', t => {
   t.is(_0.decode([0, null]).value, null)
   t.deepEqual(_0.decode([0, { foo: 123 }]).value, { foo: 123 })
 
-  t.deepEqual(
-    _0.decode(['', []]).error,
-    AtIndex(1, Optional(JsonValue('OBJECT', [])))
-  )
+  t.deepEqual(_0.decode(['', []]).error, AtIndex(1, Optional(ExpectObject([]))))
 })

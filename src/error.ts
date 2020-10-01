@@ -1,27 +1,12 @@
-export type DecodeError =
-  | { type: 'PARSE_JSON_ERROR'; error: SyntaxError; json: string }
-  | { type: 'UNKNOWN_ERROR'; error: Error }
-  | { type: 'ONE_OF'; errors: Array<DecodeError> }
-  | { type: 'OPTIONAL'; error: DecodeError }
-  | { type: 'IN_FIELD'; name: string; error: DecodeError }
-  | { type: 'AT_INDEX'; position: number; error: DecodeError }
-  | { type: 'REQUIRED_FIELD'; name: string; object: Record<string, unknown> }
-  | { type: 'REQUIRED_INDEX'; position: number; array: Array<unknown> }
-  | { type: 'FAILURE'; message: string; source: unknown }
-  | { type: 'JSON_VALUE'; value: JsonValue; source: unknown }
-  | {
-      type: 'ENUMS'
-      variants: Array<string | number | boolean | null>
-      source: unknown
-    }
+import type { DecodeJsonError, DecodeError } from '.'
 
-export const ParseJsonError = (
+export const InvalidJson = (
   error: SyntaxError,
   json: string
-): DecodeError => ({ type: 'PARSE_JSON_ERROR', error, json })
+): DecodeJsonError => ({ type: 'INVALID_JSON', error, json })
 
-export const UnknownError = (error: Error): DecodeError => ({
-  type: 'UNKNOWN_ERROR',
+export const RuntimeException = (error: Error): DecodeError => ({
+  type: 'RUNTIME_EXCEPTION',
   error
 })
 
@@ -90,16 +75,32 @@ export const Enums = (
   source: unknown
 ): DecodeError => ({ type: 'ENUMS', variants, source })
 
-export const JsonValue = (value: JsonValue, source: unknown): DecodeError => ({
-  type: 'JSON_VALUE',
-  value,
+export const ExpectString = (source: unknown): DecodeError => ({
+  type: 'EXPECT_STRING',
   source
 })
 
-export type JsonValue =
-  | 'STRING'
-  | 'BOOLEAN'
-  | 'INT'
-  | 'FLOAT'
-  | 'OBJECT'
-  | 'ARRAY'
+export const ExpectBoolean = (source: unknown): DecodeError => ({
+  type: 'EXPECT_BOOLEAN',
+  source
+})
+
+export const ExpectInt = (source: unknown): DecodeError => ({
+  type: 'EXPECT_INT',
+  source
+})
+
+export const ExpectFloat = (source: unknown): DecodeError => ({
+  type: 'EXPECT_FLOAT',
+  source
+})
+
+export const ExpectObject = (source: unknown): DecodeError => ({
+  type: 'EXPECT_OBJECT',
+  source
+})
+
+export const ExpectArray = (source: unknown): DecodeError => ({
+  type: 'EXPECT_ARRAY',
+  source
+})

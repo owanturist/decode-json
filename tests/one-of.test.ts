@@ -8,8 +8,11 @@ import {
   OneOf,
   InField,
   AtIndex,
-  JsonValue,
-  Failure
+  Failure,
+  ExpectString,
+  ExpectInt,
+  ExpectFloat,
+  ExpectBoolean
 } from '../src/error'
 
 test('Decode.oneOf()', t => {
@@ -22,30 +25,24 @@ test('Decode.oneOf()', t => {
 
   t.deepEqual(
     _0.decode(undefined).error,
-    OneOf([JsonValue('STRING', undefined), JsonValue('FLOAT', undefined)])
+    OneOf([ExpectString(undefined), ExpectFloat(undefined)])
   )
   t.deepEqual(
     _0.decode(null).error,
-    OneOf([JsonValue('STRING', null), JsonValue('FLOAT', null)])
+    OneOf([ExpectString(null), ExpectFloat(null)])
   )
   t.deepEqual(
     _0.decode(false).error,
-    OneOf([JsonValue('STRING', false), JsonValue('FLOAT', false)])
+    OneOf([ExpectString(false), ExpectFloat(false)])
   )
-  t.deepEqual(
-    _0.decode({}).error,
-    OneOf([JsonValue('STRING', {}), JsonValue('FLOAT', {})])
-  )
-  t.deepEqual(
-    _0.decode([]).error,
-    OneOf([JsonValue('STRING', []), JsonValue('FLOAT', [])])
-  )
+  t.deepEqual(_0.decode({}).error, OneOf([ExpectString({}), ExpectFloat({})]))
+  t.deepEqual(_0.decode([]).error, OneOf([ExpectString([]), ExpectFloat([])]))
 
   // Decoder<number>
   const _1 = Decode.oneOf([Decode.int])
 
   t.is(_1.decode(1).value, 1)
-  t.deepEqual(_1.decode(1.23).error, JsonValue('INT', 1.23))
+  t.deepEqual(_1.decode(1.23).error, ExpectInt(1.23))
 
   // Decoder<unknown>
   const _2 = Decode.oneOf([])
@@ -76,11 +73,7 @@ test('Decode.oneOf()', t => {
 
   t.deepEqual(
     _4.decode([]).error,
-    OneOf([
-      JsonValue('STRING', []),
-      JsonValue('FLOAT', []),
-      JsonValue('BOOLEAN', [])
-    ])
+    OneOf([ExpectString([]), ExpectFloat([]), ExpectBoolean([])])
   )
 })
 
@@ -95,11 +88,11 @@ test('Decode.optional.oneOf()', t => {
 
   t.deepEqual(
     _0.decode('str').error,
-    Optional(OneOf([JsonValue('INT', 'str'), JsonValue('FLOAT', 'str')]))
+    Optional(OneOf([ExpectInt('str'), ExpectFloat('str')]))
   )
   t.deepEqual(
     _0.decode(true).error,
-    Optional(OneOf([JsonValue('INT', true), JsonValue('FLOAT', true)]))
+    Optional(OneOf([ExpectInt(true), ExpectFloat(true)]))
   )
 })
 
@@ -125,7 +118,7 @@ test('Decode.field().oneOf()', t => {
     _0.decode({ _0: '2.j2' }).error,
     InField(
       '_0',
-      OneOf([JsonValue('FLOAT', '2.j2'), Failure('Not float "2.j2"', '2.j2')])
+      OneOf([ExpectFloat('2.j2'), Failure('Not float "2.j2"', '2.j2')])
     )
   )
 })
@@ -144,10 +137,7 @@ test('Decode.field().optional.oneOf()', t => {
 
   t.deepEqual(
     _0.decode({ _0: 'str' }).error,
-    InField(
-      '_0',
-      Optional(OneOf([JsonValue('BOOLEAN', 'str'), JsonValue('INT', 'str')]))
-    )
+    InField('_0', Optional(OneOf([ExpectBoolean('str'), ExpectInt('str')])))
   )
 })
 
@@ -160,11 +150,11 @@ test('Decode.index().oneOf()', t => {
 
   t.deepEqual(
     _0.decode([0, null]).error,
-    AtIndex(1, OneOf([JsonValue('INT', null), JsonValue('STRING', null)]))
+    AtIndex(1, OneOf([ExpectInt(null), ExpectString(null)]))
   )
   t.deepEqual(
     _0.decode([0, 1.23]).error,
-    AtIndex(1, OneOf([JsonValue('INT', 1.23), JsonValue('STRING', 1.23)]))
+    AtIndex(1, OneOf([ExpectInt(1.23), ExpectString(1.23)]))
   )
 })
 
@@ -183,9 +173,6 @@ test('Decode.index().optional.oneOf()', t => {
 
   t.deepEqual(
     _0.decode(['', {}]).error,
-    AtIndex(
-      1,
-      Optional(OneOf([JsonValue('STRING', {}), JsonValue('BOOLEAN', {})]))
-    )
+    AtIndex(1, Optional(OneOf([ExpectString({}), ExpectBoolean({})])))
   )
 })

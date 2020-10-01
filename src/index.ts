@@ -1,5 +1,7 @@
 import * as Err from './error'
 
+//
+
 const isString = (input: unknown): input is string => {
   return typeof input === 'string'
 }
@@ -33,7 +35,30 @@ const hasOwnProperty = (
 
 //
 
-export type DecodeError = Err.DecodeError
+export type DecodeError =
+  | { type: 'RUNTIME_EXCEPTION'; error: Error }
+  | { type: 'ONE_OF'; errors: Array<DecodeError> }
+  | { type: 'OPTIONAL'; error: DecodeError }
+  | { type: 'IN_FIELD'; name: string; error: DecodeError }
+  | { type: 'AT_INDEX'; position: number; error: DecodeError }
+  | { type: 'REQUIRED_FIELD'; name: string; object: Record<string, unknown> }
+  | { type: 'REQUIRED_INDEX'; position: number; array: Array<unknown> }
+  | { type: 'FAILURE'; message: string; source: unknown }
+  | { type: 'EXPECT_STRING'; source: unknown }
+  | { type: 'EXPECT_BOOLEAN'; source: unknown }
+  | { type: 'EXPECT_INT'; source: unknown }
+  | { type: 'EXPECT_FLOAT'; source: unknown }
+  | { type: 'EXPECT_OBJECT'; source: unknown }
+  | { type: 'EXPECT_ARRAY'; source: unknown }
+  | {
+      type: 'ENUMS'
+      variants: Array<string | number | boolean | null>
+      source: unknown
+    }
+
+export type DecodeJsonError =
+  | DecodeError
+  | { type: 'INVALID_JSON'; error: SyntaxError; json: string }
 
 export type Result<E, T> =
   | { error: E; value?: never }
@@ -41,6 +66,8 @@ export type Result<E, T> =
 
 export const Left = <E, T>(error: E): Result<E, T> => ({ error })
 export const Right = <E, T>(value: T): Result<E, T> => ({ value })
+
+//
 
 export abstract class Decoder<T> {
   public map<R>(fn: (value: T) => R): Decoder<R> {
@@ -51,11 +78,11 @@ export abstract class Decoder<T> {
     return new Chain(fn, this)
   }
 
-  public decodeJSON(json: string): Result<DecodeError, T> {
+  public decodeJSON(json: string): Result<DecodeJsonError, T> {
     try {
       return this.decode(JSON.parse(json))
     } catch (jsonError) {
-      return Left(Err.ParseJsonError(jsonError, json))
+      return Left(Err.InvalidJson(jsonError, json))
     }
   }
 
@@ -63,7 +90,7 @@ export abstract class Decoder<T> {
     try {
       return this.run(input)
     } catch (unknownError) {
-      return Left(Err.UnknownError(unknownError))
+      return Left(Err.RuntimeException(unknownError))
     }
   }
 
@@ -110,7 +137,7 @@ class Chain<T, R> extends Decoder<R> {
 
 class Primitive<T> extends Decoder<T> {
   public constructor(
-    private readonly type: Err.JsonValue,
+    private readonly createError: (source: unknown) => DecodeError,
     private readonly check: (input: unknown) => input is T
   ) {
     super()
@@ -121,7 +148,7 @@ class Primitive<T> extends Decoder<T> {
       return Right(input)
     }
 
-    return Left(Err.JsonValue(this.type, input))
+    return Left(this.createError(input))
   }
 }
 
@@ -182,7 +209,7 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
 
   protected run(input: unknown): Result<DecodeError, Array<[K, T]>> {
     if (!isObject(input)) {
-      return Left(Err.JsonValue('OBJECT', input))
+      return Left(Err.ExpectObject(input))
     }
 
     const acc: Array<[K, T]> = []
@@ -216,7 +243,7 @@ class Rec<T> extends Decoder<Record<string, T>> {
 
   protected run(input: unknown): Result<DecodeError, Record<string, T>> {
     if (!isObject(input)) {
-      return Left(Err.JsonValue('OBJECT', input))
+      return Left(Err.ExpectObject(input))
     }
 
     const acc: Record<string, T> = {}
@@ -270,7 +297,7 @@ class List<T> extends Decoder<Array<T>> {
 
   protected run(input: unknown): Result<DecodeError, Array<T>> {
     if (!isArray(input)) {
-      return Left(Err.JsonValue('ARRAY', input))
+      return Left(Err.ExpectArray(input))
     }
 
     const N = input.length
@@ -351,7 +378,7 @@ class RequiredField<T> extends Decoder<T> {
 
   protected run(input: unknown): Result<DecodeError, T> {
     if (!isObject(input)) {
-      return Left(Err.JsonValue('OBJECT', input))
+      return Left(Err.ExpectObject(input))
     }
 
     if (!hasOwnProperty(this.name, input)) {
@@ -389,7 +416,7 @@ class RequiredIndex<T> extends Decoder<T> {
 
   protected run(input: unknown): Result<DecodeError, T> {
     if (!isArray(input)) {
-      return Left(Err.JsonValue('ARRAY', input))
+      return Left(Err.ExpectArray(input))
     }
 
     if (this.position < 0 || this.position >= input.length) {
@@ -644,13 +671,13 @@ const optional: Optional = new OptionalImpl(decoder => decoder)
 
 const unknown: Decoder<unknown> = new Unknown()
 
-const string: Decoder<string> = new Primitive('STRING', isString)
+const string: Decoder<string> = new Primitive(Err.ExpectString, isString)
 
-const boolean: Decoder<boolean> = new Primitive('BOOLEAN', isBoolean)
+const boolean: Decoder<boolean> = new Primitive(Err.ExpectBoolean, isBoolean)
 
-const int: Decoder<number> = new Primitive('INT', isInteger)
+const int: Decoder<number> = new Primitive(Err.ExpectInt, isInteger)
 
-const float: Decoder<number> = new Primitive('FLOAT', isNumber)
+const float: Decoder<number> = new Primitive(Err.ExpectFloat, isNumber)
 
 function fail(message: string): Decoder<never> {
   return new Fail(message)

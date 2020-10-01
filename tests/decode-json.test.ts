@@ -1,7 +1,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { InField, ParseJsonError, UnknownError } from '../src/error'
+import { InField, InvalidJson, RuntimeException } from '../src/error'
 
 test('Decoder.decodeJSON()', t => {
   t.is(
@@ -11,7 +11,7 @@ test('Decoder.decodeJSON()', t => {
 
   t.deepEqual(
     Decode.string.decodeJSON('wrong json string').error,
-    ParseJsonError(
+    InvalidJson(
       new SyntaxError('Unexpected token w in JSON at position 0'),
       'wrong json string'
     )
@@ -23,11 +23,11 @@ test('Decoder.decodeJSON()', t => {
 
   t.deepEqual(
     _0.decodeJSON('"report"').error,
-    UnknownError(new Error('report'))
+    RuntimeException(new Error('report'))
   )
 
   t.deepEqual(
     Decode.field('_0').of(_0).decodeJSON('{"_0": "err"}').error,
-    InField('_0', UnknownError(new Error('err')))
+    InField('_0', RuntimeException(new Error('err')))
   )
 })
