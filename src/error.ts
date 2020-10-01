@@ -9,15 +9,16 @@ export type DecodeError =
   | { type: 'REQUIRED_INDEX'; position: number; array: Array<unknown> }
   | { type: 'FAILURE'; message: string; source: unknown }
   | { type: 'JSON_VALUE'; value: JsonValue; source: unknown }
+  | {
+      type: 'ENUMS'
+      variants: Array<string | number | boolean | null>
+      source: unknown
+    }
 
 export const ParseJsonError = (
   error: SyntaxError,
   json: string
-): DecodeError => ({
-  type: 'PARSE_JSON_ERROR',
-  error,
-  json
-})
+): DecodeError => ({ type: 'PARSE_JSON_ERROR', error, json })
 
 export const UnknownError = (error: Error): DecodeError => ({
   type: 'UNKNOWN_ERROR',
@@ -71,26 +72,23 @@ export const AtIndex = (position: number, error: DecodeError): DecodeError => ({
 export const RequiredField = (
   name: string,
   object: Record<string, unknown>
-): DecodeError => ({
-  type: 'REQUIRED_FIELD',
-  name,
-  object
-})
+): DecodeError => ({ type: 'REQUIRED_FIELD', name, object })
 
 export const RequiredIndex = (
   position: number,
   array: Array<unknown>
-): DecodeError => ({
-  type: 'REQUIRED_INDEX',
-  position,
-  array
-})
+): DecodeError => ({ type: 'REQUIRED_INDEX', position, array })
 
 export const Failure = (message: string, source: unknown): DecodeError => ({
   type: 'FAILURE',
   message,
   source
 })
+
+export const Enums = (
+  variants: Array<string | number | boolean | null>,
+  source: unknown
+): DecodeError => ({ type: 'ENUMS', variants, source })
 
 export const JsonValue = (value: JsonValue, source: unknown): DecodeError => ({
   type: 'JSON_VALUE',

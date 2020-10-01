@@ -52,6 +52,7 @@ test('Decode.oneOf()', t => {
 
   t.deepEqual(_2.decode(null).error, OneOf([]))
 
+  // Decoder<number>
   const _3 = Decode.oneOf([Decode.int, Decode.succeed(0)])
 
   t.is(_3.decode(123).value, 123)
@@ -167,7 +168,7 @@ test('Decode.index().oneOf()', t => {
   )
 })
 
-test('Decode.index().optional.list()', t => {
+test('Decode.index().optional.oneOf()', t => {
   // Decode<string | null>
   const _0 = Decode.index(1).optional.oneOf([
     Decode.string,

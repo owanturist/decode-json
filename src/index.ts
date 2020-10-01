@@ -312,6 +312,29 @@ class OneOf<T> extends Decoder<T> {
   }
 }
 
+class Enums<T> extends Decoder<T> {
+  public constructor(
+    private readonly variants: Array<[string | number | boolean | null, T]>
+  ) {
+    super()
+  }
+
+  protected run(input: unknown): Result<DecodeError, T> {
+    for (const [variant, value] of this.variants) {
+      if (variant === input) {
+        return Right(value)
+      }
+    }
+
+    return Left(
+      Err.Enums(
+        this.variants.map(([variant]) => variant),
+        input
+      )
+    )
+  }
+}
+
 class RequiredField<T> extends Decoder<T> {
   public constructor(
     private readonly name: string,
@@ -390,62 +413,12 @@ class OptionalIndex<T> extends RequiredIndex<null | T> {
   }
 }
 
-interface PathSchema {
-  optional: unknown
-
-  unknown: unknown
-  string: unknown
-  boolean: unknown
-  int: unknown
-  float: unknown
-
-  record: unknown
-  shape: unknown
-  list: unknown
-  keyValue: unknown
-
-  of: unknown
-  oneOf: unknown
-  enums: unknown
-
-  field(name: string): unknown
-  index(position: number): unknown
-  at(path: Array<string | number>): unknown
-
-  lazy(createDecoder: () => Decoder<unknown>): Decoder<unknown>
-}
-
-interface PathInterface<C extends PathSchema> {
-  optional: C['optional']
-
-  unknown: C['unknown']
-  string: C['string']
-  boolean: C['boolean']
-  int: C['int']
-  float: C['float']
-
-  record: C['record']
-  shape: C['shape']
-  list: C['list']
-  keyValue: C['keyValue']
-
-  of: C['of']
-  oneOf: C['oneOf']
-  enums: C['enums']
-
-  field: C['field']
-  index: C['index']
-  at: C['at']
-
-  lazy: C['lazy']
-}
-
 export type Optional = Omit<
   OptionalPath,
   'optional' | 'unknown' | 'shape' | 'lazy'
 >
 
-export type OptionalPath = PathInterface<{
+export interface OptionalPath {
   optional: Optional
 
   unknown: Decoder<unknown>
@@ -477,7 +450,7 @@ export type OptionalPath = PathInterface<{
   field(name: string): OptionalPath
   index(position: number): OptionalPath
   at(path: Array<string | number>): OptionalPath
-}>
+}
 
 class OptionalImpl implements Optional {
   public constructor(
@@ -557,7 +530,7 @@ class OptionalImpl implements Optional {
   }
 }
 
-export type RequiredPath = PathInterface<{
+export interface RequiredPath {
   optional: Optional
 
   unknown: Decoder<unknown>
@@ -587,7 +560,7 @@ export type RequiredPath = PathInterface<{
   field(name: string): RequiredPath
   index(position: number): RequiredPath
   at(path: Array<string | number>): RequiredPath
-}>
+}
 
 interface CreateDecoder {
   <T>(decoder: Decoder<T>): Decoder<T>
@@ -742,7 +715,7 @@ function oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
 function enums<T>(
   variants: Array<[string | number | boolean | null, T]>
 ): Decoder<T> {
-  throw new Error(String(variants))
+  return new Enums(variants)
 }
 
 function field(name: string): RequiredPath {
