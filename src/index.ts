@@ -413,10 +413,7 @@ class OptionalIndex<T> extends RequiredIndex<null | T> {
   }
 }
 
-export type Optional = Omit<
-  OptionalPath,
-  'optional' | 'unknown' | 'shape' | 'lazy'
->
+export type Optional = Omit<OptionalPath, 'optional' | 'unknown' | 'shape'>
 
 export interface OptionalPath {
   optional: Optional
@@ -428,7 +425,7 @@ export interface OptionalPath {
   float: Decoder<null | number>
 
   of<T>(decoder: Decoder<T>): Decoder<null | T>
-  lazy<T>(createDecoder: () => Decoder<T>): Decoder<null | T>
+  lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<null | T>
 
   list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>>
   record<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>>
@@ -449,7 +446,6 @@ export interface OptionalPath {
 
   field(name: string): OptionalPath
   index(position: number): OptionalPath
-  at(path: Array<string | number>): OptionalPath
 }
 
 class OptionalImpl implements Optional {
@@ -479,18 +475,16 @@ class OptionalImpl implements Optional {
     return this.createDecoder(new Nullable(decoder))
   }
 
+  public lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<null | T> {
+    return this.of(lazy(lazyDecoder))
+  }
+
   public list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>> {
     return this.of(list(itemDecoder))
   }
 
   public record<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>> {
     return this.of(record(itemDecoder))
-  }
-
-  public shape<T extends Record<string, unknown>>(
-    schema: { [K in keyof T]: Decoder<T[K]> }
-  ): Decoder<null | T> {
-    return this.of(shape(schema))
   }
 
   public keyValue<K, T>(
@@ -524,10 +518,6 @@ class OptionalImpl implements Optional {
       }
     )
   }
-
-  public at(path: Array<string | number>): OptionalPath {
-    throw new Error(String(this) + String(path))
-  }
 }
 
 export interface RequiredPath {
@@ -540,7 +530,7 @@ export interface RequiredPath {
   float: Decoder<number>
 
   of<T>(decoder: Decoder<T>): Decoder<T>
-  lazy<T>(createDecoder: () => Decoder<T>): Decoder<T>
+  lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T>
 
   list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>>
   record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>>
@@ -559,7 +549,6 @@ export interface RequiredPath {
 
   field(name: string): RequiredPath
   index(position: number): RequiredPath
-  at(path: Array<string | number>): RequiredPath
 }
 
 interface CreateDecoder {
@@ -647,10 +636,6 @@ class PathImpl implements RequiredPath {
       }
     )
   }
-
-  public at(path: Array<string | number>): RequiredPath {
-    throw new Error(String(this) + String(path))
-  }
 }
 
 // E X P O R T
@@ -730,12 +715,8 @@ function index(position: number): RequiredPath {
   )
 }
 
-function at(path: Array<string | number>): RequiredPath {
-  throw new Error(String(path))
-}
-
 function lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T> {
-  throw new Error(String(lazyDecoder))
+  return succeed(null).chain(lazyDecoder)
 }
 
 export default {
@@ -760,7 +741,6 @@ export default {
 
   field,
   index,
-  at,
 
   lazy
 }
