@@ -527,12 +527,7 @@ class OptionalIndexDecoder<T> extends RequiredIndexDecoder<null | T> {
   }
 }
 
-export type Optional = Omit<OptionalPath, 'optional' | 'unknown' | 'shape'>
-
-export interface OptionalPath {
-  optional: Optional
-
-  unknown: Decoder<unknown>
+export interface Optional {
   string: Decoder<null | string>
   boolean: Decoder<null | boolean>
   int: Decoder<null | number>
@@ -543,9 +538,6 @@ export interface OptionalPath {
 
   list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>>
   record<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>>
-  shape<T extends Record<string, unknown>>(
-    object: { [K in keyof T]: Decoder<T[K]> }
-  ): Decoder<null | T>
 
   keyValue<T>(itemDecoder: Decoder<T>): Decoder<null | Array<[string, T]>>
   keyValue<K, T>(
@@ -560,6 +552,16 @@ export interface OptionalPath {
 
   field(name: string): OptionalPath
   index(position: number): OptionalPath
+}
+
+export interface OptionalPath extends Optional {
+  optional: Optional
+
+  unknown: Decoder<unknown>
+
+  shape<T extends Record<string, unknown>>(
+    object: { [K in keyof T]: Decoder<T[K]> }
+  ): Decoder<null | T>
 }
 
 class OptionalImpl implements Optional {
