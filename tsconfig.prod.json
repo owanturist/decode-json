@@ -1,8 +1,12 @@
 {
   "extends": "./tsconfig.dev.json",
   "compilerOptions": {
+    "module": "amd",
     "sourceMap": true,
-    "declaration": true
+    "declaration": true,
+    "lib": ["es5", "es6"],
+    "rootDir": "./src",
+    "outFile": "./build/decode-json.js"
   },
-  "include": ["./src/**/*.ts"]
+  "include": ["./src/index.ts"]
 }

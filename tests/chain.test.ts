@@ -1,7 +1,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { RequiredField } from '../src/error'
+import { RequiredField } from './error'
 
 test('Decoder.chain()', t => {
   // Decoder<string>

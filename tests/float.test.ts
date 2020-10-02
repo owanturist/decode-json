@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, InField, AtIndex, ExpectFloat } from '../src/error'
+import { Optional, InField, AtIndex, ExpectFloat } from './error'
 
 test('Decode.float', t => {
   t.is(Decode.float.decode(1).value, 1)

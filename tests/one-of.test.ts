@@ -13,7 +13,7 @@ import {
   ExpectInt,
   ExpectFloat,
   ExpectBoolean
-} from '../src/error'
+} from './error'
 
 test('Decode.oneOf()', t => {
   // Decoder<string>
@@ -42,7 +42,7 @@ test('Decode.oneOf()', t => {
   const _1 = Decode.oneOf([Decode.int])
 
   t.is(_1.decode(1).value, 1)
-  t.deepEqual(_1.decode(1.23).error, ExpectInt(1.23))
+  t.deepEqual(_1.decode(1.23).error, OneOf([ExpectInt(1.23)]))
 
   // Decoder<unknown>
   const _2 = Decode.oneOf([])
@@ -73,7 +73,11 @@ test('Decode.oneOf()', t => {
 
   t.deepEqual(
     _4.decode([]).error,
-    OneOf([ExpectString([]), ExpectFloat([]), ExpectBoolean([])])
+    OneOf([
+      OneOf([]),
+      ExpectString([]),
+      OneOf([ExpectFloat([]), ExpectBoolean([])])
+    ])
   )
 })
 

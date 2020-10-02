@@ -1,7 +1,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { InField, InvalidJson, RuntimeException } from '../src/error'
+import { InField, InvalidJson, RuntimeException } from './error'
 
 test('Decoder.decodeJSON()', t => {
   t.is(

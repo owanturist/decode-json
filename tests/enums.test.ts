@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, Enums, InField, AtIndex } from '../src/error'
+import { Optional, Enums, InField, AtIndex } from './error'
 
 interface Currency {
   toCode(): string

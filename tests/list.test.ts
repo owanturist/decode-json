@@ -3,13 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import {
-  Optional,
-  InField,
-  AtIndex,
-  ExpectArray,
-  ExpectInt
-} from '../src/error'
+import { Optional, InField, AtIndex, ExpectArray, ExpectInt } from './error'
 
 test('Decode.list()', t => {
   // Decoder<number[]>

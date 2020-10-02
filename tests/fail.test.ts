@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Failure } from '../src/error'
+import { Failure } from './error'
 
 test('Decode.fail()', t => {
   t.deepEqual(Decode.fail('err msg').decode([]).error, Failure('err msg', []))

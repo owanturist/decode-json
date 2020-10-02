@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, InField, AtIndex, ExpectInt } from '../src/error'
+import { Optional, InField, AtIndex, ExpectInt } from './error'
 
 test('Decode.int', t => {
   t.is(Decode.int.decode(1).value, 1)

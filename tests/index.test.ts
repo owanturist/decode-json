@@ -12,7 +12,7 @@ import {
   ExpectInt,
   ExpectFloat,
   ExpectBoolean
-} from '../src/error'
+} from './error'
 
 test('Decode.index().of', t => {
   // Decode<string>

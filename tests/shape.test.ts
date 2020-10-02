@@ -9,7 +9,7 @@ import {
   RequiredField,
   ExpectObject,
   ExpectString
-} from '../src/error'
+} from './error'
 
 test('Decode.shape()', t => {
   // Decoder<{

@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode, { Decoder } from '../src'
-import { InField, RequiredField, ExpectInt } from '../src/error'
+import { InField, RequiredField, ExpectInt } from './error'
 
 interface Message {
   content: string

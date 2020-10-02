@@ -10,7 +10,7 @@ import {
   Failure,
   ExpectObject,
   ExpectInt
-} from '../src/error'
+} from './error'
 
 const toNumber = (key: string): Result<string, number> => {
   const id = Number(key)

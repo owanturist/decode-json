@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, InField, AtIndex, ExpectBoolean } from '../src/error'
+import { Optional, InField, AtIndex, ExpectBoolean } from './error'
 
 test('Decode.boolean', t => {
   t.is(Decode.boolean.decode(true).value, true)

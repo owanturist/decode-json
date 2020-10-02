@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Failure } from '../src/error'
+import { Failure } from './error'
 
 test('Decode.succeed()', t => {
   t.is(Decode.succeed('val').decode([]).value, 'val')

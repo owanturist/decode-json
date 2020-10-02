@@ -1,4 +1,4 @@
-import type { DecodeJsonError, DecodeError } from '.'
+import type { DecodeJsonError, DecodeError } from '../src'
 
 export const InvalidJson = (
   error: SyntaxError,
@@ -10,32 +10,10 @@ export const RuntimeException = (error: Error): DecodeError => ({
   error
 })
 
-const flatOneOf = (errors: Array<DecodeError>): Array<DecodeError> => {
-  const acc: Array<DecodeError> = []
-
-  for (const error of errors) {
-    if (error.type === 'ONE_OF') {
-      acc.push(...flatOneOf(error.errors))
-    } else {
-      acc.push(error)
-    }
-  }
-
-  return acc
-}
-
-export const OneOf = (errors: Array<DecodeError>): DecodeError => {
-  const flat = flatOneOf(errors)
-
-  if (errors.length === 1) {
-    return errors[0]
-  }
-
-  return {
-    type: 'ONE_OF',
-    errors: flat
-  }
-}
+export const OneOf = (errors: Array<DecodeError>): DecodeError => ({
+  type: 'ONE_OF',
+  errors
+})
 
 export const Optional = (error: DecodeError): DecodeError => ({
   type: 'OPTIONAL',

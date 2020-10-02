@@ -10,7 +10,7 @@ import {
   ExpectObject,
   ExpectInt,
   ExpectFloat
-} from '../src/error'
+} from './error'
 
 test('Decode.record()', t => {
   class Foo {

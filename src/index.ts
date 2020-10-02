@@ -1,7 +1,3 @@
-import * as Err from './error'
-
-//
-
 const isString = (input: unknown): input is string => {
   return typeof input === 'string'
 }
@@ -60,29 +56,120 @@ export type DecodeJsonError =
   | DecodeError
   | { type: 'INVALID_JSON'; error: SyntaxError; json: string }
 
+const InvalidJson = (error: SyntaxError, json: string): DecodeJsonError => ({
+  type: 'INVALID_JSON',
+  error,
+  json
+})
+
+const RuntimeException = (error: Error): DecodeError => ({
+  type: 'RUNTIME_EXCEPTION',
+  error
+})
+
+const OneOf = (errors: Array<DecodeError>): DecodeError => ({
+  type: 'ONE_OF',
+  errors
+})
+
+const Optional = (error: DecodeError): DecodeError => ({
+  type: 'OPTIONAL',
+  error
+})
+
+const InField = (name: string, error: DecodeError): DecodeError => ({
+  type: 'IN_FIELD',
+  name,
+  error
+})
+
+const AtIndex = (position: number, error: DecodeError): DecodeError => ({
+  type: 'AT_INDEX',
+  position,
+  error
+})
+
+const RequiredField = (
+  name: string,
+  object: Record<string, unknown>
+): DecodeError => ({ type: 'REQUIRED_FIELD', name, object })
+
+const RequiredIndex = (
+  position: number,
+  array: Array<unknown>
+): DecodeError => ({ type: 'REQUIRED_INDEX', position, array })
+
+const Failure = (message: string, source: unknown): DecodeError => ({
+  type: 'FAILURE',
+  message,
+  source
+})
+
+const Enums = (
+  variants: Array<string | number | boolean | null>,
+  source: unknown
+): DecodeError => ({ type: 'ENUMS', variants, source })
+
+const ExpectString = (source: unknown): DecodeError => ({
+  type: 'EXPECT_STRING',
+  source
+})
+
+const ExpectBoolean = (source: unknown): DecodeError => ({
+  type: 'EXPECT_BOOLEAN',
+  source
+})
+
+const ExpectInt = (source: unknown): DecodeError => ({
+  type: 'EXPECT_INT',
+  source
+})
+
+const ExpectFloat = (source: unknown): DecodeError => ({
+  type: 'EXPECT_FLOAT',
+  source
+})
+
+const ExpectObject = (source: unknown): DecodeError => ({
+  type: 'EXPECT_OBJECT',
+  source
+})
+
+const ExpectArray = (source: unknown): DecodeError => ({
+  type: 'EXPECT_ARRAY',
+  source
+})
+
 export type Result<E, T> =
   | { error: E; value?: never }
   | { error?: never; value: T }
 
-export const Left = <E, T>(error: E): Result<E, T> => ({ error })
-export const Right = <E, T>(value: T): Result<E, T> => ({ value })
+const Left = <E, T>(error: E): Result<E, T> => ({ error })
+const Right = <E, T>(value: T): Result<E, T> => ({ value })
 
 //
 
-export abstract class Decoder<T> {
+export interface Decoder<T> {
+  map<R>(fn: (value: T) => R): Decoder<R>
+  chain<R>(fn: (value: T) => Decoder<R>): Decoder<R>
+  decode(input: unknown): Result<DecodeError, T>
+  decodeJSON(json: string): Result<DecodeJsonError, T>
+}
+
+abstract class DecoderImpl<T> implements Decoder<T> {
   public map<R>(fn: (value: T) => R): Decoder<R> {
-    return new Map(fn, this)
+    return new MapDecoder(fn, this)
   }
 
   public chain<R>(fn: (value: T) => Decoder<R>): Decoder<R> {
-    return new Chain(fn, this)
+    return new ChainDecoder(fn, this)
   }
 
   public decodeJSON(json: string): Result<DecodeJsonError, T> {
     try {
       return this.decode(JSON.parse(json))
     } catch (jsonError) {
-      return Left(Err.InvalidJson(jsonError, json))
+      return Left(InvalidJson(jsonError, json))
     }
   }
 
@@ -90,14 +177,14 @@ export abstract class Decoder<T> {
     try {
       return this.run(input)
     } catch (unknownError) {
-      return Left(Err.RuntimeException(unknownError))
+      return Left(RuntimeException(unknownError))
     }
   }
 
   protected abstract run(input: unknown): Result<DecodeError, T>
 }
 
-class Map<T, R> extends Decoder<R> {
+class MapDecoder<T, R> extends DecoderImpl<R> {
   public constructor(
     private readonly fn: (value: T) => R,
     protected readonly decoder: Decoder<T>
@@ -116,7 +203,7 @@ class Map<T, R> extends Decoder<R> {
   }
 }
 
-class Chain<T, R> extends Decoder<R> {
+class ChainDecoder<T, R> extends DecoderImpl<R> {
   public constructor(
     private readonly fn: (value: T) => Decoder<R>,
     protected readonly decoder: Decoder<T>
@@ -135,7 +222,7 @@ class Chain<T, R> extends Decoder<R> {
   }
 }
 
-class Primitive<T> extends Decoder<T> {
+class PrimitiveDecoder<T> extends DecoderImpl<T> {
   public constructor(
     private readonly createError: (source: unknown) => DecodeError,
     private readonly check: (input: unknown) => input is T
@@ -152,24 +239,24 @@ class Primitive<T> extends Decoder<T> {
   }
 }
 
-class Unknown extends Decoder<unknown> {
+class UnknownDecoder extends DecoderImpl<unknown> {
   // eslint-disable-next-line class-methods-use-this
   protected run(input: unknown): Result<DecodeError, unknown> {
     return Right(input)
   }
 }
 
-class Fail extends Decoder<never> {
+class FailDecoder extends DecoderImpl<never> {
   public constructor(private readonly message: string) {
     super()
   }
 
   protected run(input: unknown): Result<DecodeError, never> {
-    return Left(Err.Failure(this.message, input))
+    return Left(Failure(this.message, input))
   }
 }
 
-class Succeed<T> extends Decoder<T> {
+class SucceedDecoder<T> extends DecoderImpl<T> {
   public constructor(private readonly value: T) {
     super()
   }
@@ -179,7 +266,7 @@ class Succeed<T> extends Decoder<T> {
   }
 }
 
-class Nullable<T> extends Decoder<null | T> {
+class NullableDecoder<T> extends DecoderImpl<null | T> {
   public constructor(private readonly decoder: Decoder<T>) {
     super()
   }
@@ -192,14 +279,14 @@ class Nullable<T> extends Decoder<null | T> {
     const result = this.decoder.decode(input)
 
     if (result.error != null) {
-      return Left(Err.Optional(result.error))
+      return Left(Optional(result.error))
     }
 
     return result
   }
 }
 
-class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
+class KeyValueDecoder<K, T> extends DecoderImpl<Array<[K, T]>> {
   public constructor(
     private readonly convertKey: (key: string) => Result<string, K>,
     private readonly itemDecoder: Decoder<T>
@@ -209,7 +296,7 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
 
   protected run(input: unknown): Result<DecodeError, Array<[K, T]>> {
     if (!isObject(input)) {
-      return Left(Err.ExpectObject(input))
+      return Left(ExpectObject(input))
     }
 
     const acc: Array<[K, T]> = []
@@ -219,13 +306,13 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
         const keyResult = this.convertKey(key)
 
         if (keyResult.error != null) {
-          return Left(Err.InField(key, Err.Failure(keyResult.error, key)))
+          return Left(InField(key, Failure(keyResult.error, key)))
         }
 
         const itemResult = this.itemDecoder.decode(input[key])
 
         if (itemResult.error != null) {
-          return Left(Err.InField(key, itemResult.error))
+          return Left(InField(key, itemResult.error))
         }
 
         acc.push([keyResult.value, itemResult.value])
@@ -236,14 +323,14 @@ class KeyValue<K, T> extends Decoder<Array<[K, T]>> {
   }
 }
 
-class Rec<T> extends Decoder<Record<string, T>> {
+class RecordDecoder<T> extends DecoderImpl<Record<string, T>> {
   public constructor(private readonly itemDecoder: Decoder<T>) {
     super()
   }
 
   protected run(input: unknown): Result<DecodeError, Record<string, T>> {
     if (!isObject(input)) {
-      return Left(Err.ExpectObject(input))
+      return Left(ExpectObject(input))
     }
 
     const acc: Record<string, T> = {}
@@ -253,7 +340,7 @@ class Rec<T> extends Decoder<Record<string, T>> {
         const itemResult = this.itemDecoder.decode(input[key])
 
         if (itemResult.error != null) {
-          return Left(Err.InField(key, itemResult.error))
+          return Left(InField(key, itemResult.error))
         }
 
         acc[key] = itemResult.value
@@ -264,7 +351,7 @@ class Rec<T> extends Decoder<Record<string, T>> {
   }
 }
 
-class Shape<T> extends Decoder<T> {
+class ShapeDecoder<T> extends DecoderImpl<T> {
   public constructor(
     private readonly schema: { [K in keyof T]: Decoder<T[K]> }
   ) {
@@ -290,14 +377,14 @@ class Shape<T> extends Decoder<T> {
   }
 }
 
-class List<T> extends Decoder<Array<T>> {
+class ListDecoder<T> extends DecoderImpl<Array<T>> {
   public constructor(private readonly itemDecoder: Decoder<T>) {
     super()
   }
 
   protected run(input: unknown): Result<DecodeError, Array<T>> {
     if (!isArray(input)) {
-      return Left(Err.ExpectArray(input))
+      return Left(ExpectArray(input))
     }
 
     const N = input.length
@@ -307,7 +394,7 @@ class List<T> extends Decoder<Array<T>> {
       const itemResult = this.itemDecoder.decode(input[i])
 
       if (itemResult.error != null) {
-        return Left(Err.AtIndex(i, itemResult.error))
+        return Left(AtIndex(i, itemResult.error))
       }
 
       acc[i] = itemResult.value
@@ -317,7 +404,7 @@ class List<T> extends Decoder<Array<T>> {
   }
 }
 
-class OneOf<T> extends Decoder<T> {
+class OneOfDecoder<T> extends DecoderImpl<T> {
   public constructor(private readonly options: Array<Decoder<T>>) {
     super()
   }
@@ -335,11 +422,11 @@ class OneOf<T> extends Decoder<T> {
       errors.push(optionResult.error)
     }
 
-    return Left(Err.OneOf(errors))
+    return Left(OneOf(errors))
   }
 }
 
-class Enums<T> extends Decoder<T> {
+class EnumsDecoder<T> extends DecoderImpl<T> {
   public constructor(
     private readonly variants: Array<[string | number | boolean | null, T]>
   ) {
@@ -354,7 +441,7 @@ class Enums<T> extends Decoder<T> {
     }
 
     return Left(
-      Err.Enums(
+      Enums(
         this.variants.map(([variant]) => variant),
         input
       )
@@ -362,7 +449,7 @@ class Enums<T> extends Decoder<T> {
   }
 }
 
-class RequiredField<T> extends Decoder<T> {
+class RequiredFieldDecoder<T> extends DecoderImpl<T> {
   public constructor(
     private readonly name: string,
     private readonly decoder: Decoder<T>
@@ -373,12 +460,12 @@ class RequiredField<T> extends Decoder<T> {
   protected fieldNotDefined(
     input: Record<string, unknown>
   ): Result<DecodeError, T> {
-    return Left(Err.RequiredField(this.name, input))
+    return Left(RequiredField(this.name, input))
   }
 
   protected run(input: unknown): Result<DecodeError, T> {
     if (!isObject(input)) {
-      return Left(Err.ExpectObject(input))
+      return Left(ExpectObject(input))
     }
 
     if (!hasOwnProperty(this.name, input)) {
@@ -388,21 +475,21 @@ class RequiredField<T> extends Decoder<T> {
     const result = this.decoder.decode(input[this.name])
 
     if (result.error != null) {
-      return Left(Err.InField(this.name, result.error))
+      return Left(InField(this.name, result.error))
     }
 
     return result
   }
 }
 
-class OptionalField<T> extends RequiredField<null | T> {
+class OptionalFieldDecoder<T> extends RequiredFieldDecoder<null | T> {
   // eslint-disable-next-line class-methods-use-this
   protected fieldNotDefined(): Result<DecodeError, null | T> {
     return Right(null)
   }
 }
 
-class RequiredIndex<T> extends Decoder<T> {
+class RequiredIndexDecoder<T> extends DecoderImpl<T> {
   public constructor(
     private readonly position: number,
     private readonly decoder: Decoder<T>
@@ -411,12 +498,12 @@ class RequiredIndex<T> extends Decoder<T> {
   }
 
   protected outOfRange(input: Array<unknown>): Result<DecodeError, T> {
-    return Left(Err.RequiredIndex(this.position, input))
+    return Left(RequiredIndex(this.position, input))
   }
 
   protected run(input: unknown): Result<DecodeError, T> {
     if (!isArray(input)) {
-      return Left(Err.ExpectArray(input))
+      return Left(ExpectArray(input))
     }
 
     if (this.position < 0 || this.position >= input.length) {
@@ -426,14 +513,14 @@ class RequiredIndex<T> extends Decoder<T> {
     const result = this.decoder.decode(input[this.position])
 
     if (result.error != null) {
-      return Left(Err.AtIndex(this.position, result.error))
+      return Left(AtIndex(this.position, result.error))
     }
 
     return result
   }
 }
 
-class OptionalIndex<T> extends RequiredIndex<null | T> {
+class OptionalIndexDecoder<T> extends RequiredIndexDecoder<null | T> {
   // eslint-disable-next-line class-methods-use-this
   protected outOfRange(): Result<DecodeError, null | T> {
     return Right(null)
@@ -499,7 +586,7 @@ class OptionalImpl implements Optional {
   }
 
   public of<T>(decoder: Decoder<T>): Decoder<null | T> {
-    return this.createDecoder(new Nullable(decoder))
+    return this.createDecoder(new NullableDecoder(decoder))
   }
 
   public lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<null | T> {
@@ -533,7 +620,7 @@ class OptionalImpl implements Optional {
   public field(name: string): OptionalPath {
     return new PathImpl(
       <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
-        return this.of(new OptionalField(name, decoder))
+        return this.of(new OptionalFieldDecoder(name, decoder))
       }
     )
   }
@@ -541,7 +628,7 @@ class OptionalImpl implements Optional {
   public index(position: number): OptionalPath {
     return new PathImpl(
       <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
-        return this.of(new OptionalIndex(position, decoder))
+        return this.of(new OptionalIndexDecoder(position, decoder))
       }
     )
   }
@@ -651,7 +738,7 @@ class PathImpl implements RequiredPath {
   public field(name: string): RequiredPath {
     return new PathImpl(
       <T>(decoder: Decoder<T>): Decoder<T> => {
-        return this.of(new RequiredField(name, decoder))
+        return this.of(new RequiredFieldDecoder(name, decoder))
       }
     )
   }
@@ -659,7 +746,7 @@ class PathImpl implements RequiredPath {
   public index(position: number): RequiredPath {
     return new PathImpl(
       <T>(decoder: Decoder<T>): Decoder<T> => {
-        return this.of(new RequiredIndex(position, decoder))
+        return this.of(new RequiredIndexDecoder(position, decoder))
       }
     )
   }
@@ -669,36 +756,36 @@ class PathImpl implements RequiredPath {
 
 const optional: Optional = new OptionalImpl(decoder => decoder)
 
-const unknown: Decoder<unknown> = new Unknown()
+const unknown: Decoder<unknown> = new UnknownDecoder()
 
-const string: Decoder<string> = new Primitive(Err.ExpectString, isString)
+const string: Decoder<string> = new PrimitiveDecoder(ExpectString, isString)
 
-const boolean: Decoder<boolean> = new Primitive(Err.ExpectBoolean, isBoolean)
+const boolean: Decoder<boolean> = new PrimitiveDecoder(ExpectBoolean, isBoolean)
 
-const int: Decoder<number> = new Primitive(Err.ExpectInt, isInteger)
+const int: Decoder<number> = new PrimitiveDecoder(ExpectInt, isInteger)
 
-const float: Decoder<number> = new Primitive(Err.ExpectFloat, isNumber)
+const float: Decoder<number> = new PrimitiveDecoder(ExpectFloat, isNumber)
 
 function fail(message: string): Decoder<never> {
-  return new Fail(message)
+  return new FailDecoder(message)
 }
 
 function succeed<T>(value: T): Decoder<T> {
-  return new Succeed(value)
+  return new SucceedDecoder(value)
 }
 
 function record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
-  return new Rec(itemDecoder)
+  return new RecordDecoder(itemDecoder)
 }
 
 function shape<T extends Record<string, unknown>>(
   schema: { [K in keyof T]: Decoder<T[K]> }
 ): Decoder<T> {
-  return new Shape(schema)
+  return new ShapeDecoder(schema)
 }
 
 function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
-  return new List(itemDecoder)
+  return new ListDecoder(itemDecoder)
 }
 
 const keyValueHelp = <K, T>(
@@ -706,7 +793,7 @@ const keyValueHelp = <K, T>(
 ): Decoder<Array<[K | string, T]>> => {
   const [convertKey, itemDecoder] = args.length === 1 ? [Right, args[0]] : args
 
-  return new KeyValue<K | string, T>(convertKey, itemDecoder)
+  return new KeyValueDecoder<K | string, T>(convertKey, itemDecoder)
 }
 
 function keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
@@ -721,24 +808,26 @@ function keyValue<K, T>(
 }
 
 function oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
-  return new OneOf(options)
+  return new OneOfDecoder(options)
 }
 
 function enums<T>(
   variants: Array<[string | number | boolean | null, T]>
 ): Decoder<T> {
-  return new Enums(variants)
+  return new EnumsDecoder(variants)
 }
 
 function field(name: string): RequiredPath {
   return new PathImpl(
-    <T>(decoder: Decoder<T>): Decoder<T> => new RequiredField(name, decoder)
+    <T>(decoder: Decoder<T>): Decoder<T> =>
+      new RequiredFieldDecoder(name, decoder)
   )
 }
 
 function index(position: number): RequiredPath {
   return new PathImpl(
-    <T>(decoder: Decoder<T>): Decoder<T> => new RequiredIndex(position, decoder)
+    <T>(decoder: Decoder<T>): Decoder<T> =>
+      new RequiredIndexDecoder(position, decoder)
   )
 }
 
