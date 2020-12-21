@@ -14,7 +14,8 @@
     "test": "ava",
     "test:watch": "npm test -- --watch",
     "lint": "eslint . --config=.eslintrc.prod.json --ext=js,ts",
-    "prettify": "prettier . --write"
+    "prettify": "prettier . --write",
+    "typecheck": "tsc -p tsconfig.prod.json --noEmit"
   },
   "husky": {
     "hooks": {
@@ -29,6 +30,9 @@
     ],
     "**/*.{js,ts}": [
       "eslint --config=.eslintrc.prod.json --fix"
+    ],
+    "**/*.ts": [
+      "tsc --noEmit"
     ]
   },
   "devDependencies": {
