@@ -15,7 +15,7 @@
     "test:watch": "npm test -- --watch",
     "lint": "eslint . --config=.eslintrc.prod.json --ext=js,ts",
     "prettify": "prettier . --write",
-    "typecheck": "tsc -p tsconfig.prod.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "husky": {
     "hooks": {
