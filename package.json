@@ -20,7 +20,7 @@
   "husky": {
     "hooks": {
       "prepare-commit-msg": "./scripts/git-commit-message.sh $HUSKY_GIT_PARAMS",
-      "pre-commit": "lint-staged",
+      "pre-commit": "npm run typecheck && lint-staged",
       "pre-push": "npm run test"
     }
   },
@@ -30,9 +30,6 @@
     ],
     "**/*.{js,ts}": [
       "eslint --config=.eslintrc.prod.json --fix"
-    ],
-    "**/*.ts": [
-      "tsc --noEmit"
     ]
   },
   "devDependencies": {

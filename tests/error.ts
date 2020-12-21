@@ -2,8 +2,8 @@ import type { DecodeJsonError, DecodeError } from '../src'
 
 export const InvalidJson = (
   error: SyntaxError,
-  json: string
-): DecodeJsonError => ({ type: 'INVALID_JSON', error, json })
+  source: string
+): DecodeJsonError => ({ type: 'INVALID_JSON', error, source })
 
 export const RuntimeException = (error: Error): DecodeError => ({
   type: 'RUNTIME_EXCEPTION',

@@ -32,11 +32,11 @@ const hasOwnProperty = (
 //
 
 export type DecodeError =
-  | { type: 'RUNTIME_EXCEPTION'; error: Error }
-  | { type: 'ONE_OF'; errors: Array<DecodeError> }
   | { type: 'OPTIONAL'; error: DecodeError }
   | { type: 'IN_FIELD'; name: string; error: DecodeError }
   | { type: 'AT_INDEX'; position: number; error: DecodeError }
+  | { type: 'ONE_OF'; errors: Array<DecodeError> }
+  | { type: 'RUNTIME_EXCEPTION'; error: Error }
   | { type: 'REQUIRED_FIELD'; name: string; object: Record<string, unknown> }
   | { type: 'REQUIRED_INDEX'; position: number; array: Array<unknown> }
   | { type: 'FAILURE'; message: string; source: unknown }
@@ -54,7 +54,7 @@ export type DecodeError =
 
 export type DecodeJsonError =
   | DecodeError
-  | { type: 'INVALID_JSON'; error: SyntaxError; json: string }
+  | { type: 'INVALID_JSON'; error: SyntaxError; source: string }
 
 const InvalidJsonError = (
   error: SyntaxError,
@@ -62,7 +62,7 @@ const InvalidJsonError = (
 ): DecodeJsonError => ({
   type: 'INVALID_JSON',
   error,
-  json
+  source: json
 })
 
 const RuntimeExceptionError = (error: Error): DecodeError => ({
