@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode, { Result } from '../src'
+import Decode, { DecodeResult } from '../src'
 import {
   Optional,
   InField,
@@ -12,7 +12,7 @@ import {
   ExpectInt
 } from './error'
 
-const toNumber = (key: string): Result<string, number> => {
+const toNumber = (key: string): DecodeResult<string, number> => {
   const id = Number(key)
 
   if (isNaN(id)) {
