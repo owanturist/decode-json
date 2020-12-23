@@ -9,12 +9,14 @@ import {
   Optional,
   InField,
   AtIndex,
+  Failure,
   ExpectString,
   ExpectBoolean,
   ExpectInt,
   ExpectFloat,
   ExpectObject,
-  ExpectArray
+  ExpectArray,
+  ExpectEnums
 } from './error'
 
 test('INVALID_JSON', t => {
@@ -102,13 +104,120 @@ test.todo('REQUIRED_FIELD')
 
 test.todo('REQUIRED_INDEX')
 
-test.todo('FAILURE')
+test('FAILURE', t => {
+  const template =
+    'Custom message at {path} or {context} is:\n\n{json}\n\n{value}\n\n{source}'
+
+  const _0 = Failure(template, undefined)
+  t.is(
+    errorToHumanReadable(_0),
+    `Custom message at _ or _ is:
+
+    undefined
+
+    undefined
+
+    undefined`
+  )
+
+  const _1 = Failure(template, {
+    foo: [{ bar: 123 }]
+  })
+  t.is(
+    errorToHumanReadable(_1, { indent: 2 }),
+    `Custom message at _ or _ is:
+
+  {
+    "foo": [
+      {
+        "bar": 123
+      }
+    ]
+  }
+
+  {
+    "foo": [
+      {
+        "bar": 123
+      }
+    ]
+  }
+
+  {
+    "foo": [
+      {
+        "bar": 123
+      }
+    ]
+  }`
+  )
+
+  const _2 = InField('bar', _1)
+  t.is(
+    errorToHumanReadable(_2),
+    `Custom message at _.bar or _.bar is:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+
+  const _3 = AtIndex(83, _1)
+  t.is(
+    errorToHumanReadable(_3),
+    `Custom message at _[83] or _[83] is:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+})
 
 test('EXPECT_STRING', t => {
   const _0 = ExpectString(undefined)
   t.is(
     errorToHumanReadable(_0),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting a STRING but actual value is:
 
     undefined`
@@ -119,7 +228,7 @@ Expecting a STRING but actual value is:
   })
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting a STRING but actual value is:
 
   {
@@ -134,7 +243,7 @@ Expecting a STRING but actual value is:
   const _2 = Optional(_1)
   t.is(
     errorToHumanReadable(_2),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OPTIONAL STRING but actual value is:
 
     {
@@ -149,7 +258,7 @@ Expecting an OPTIONAL STRING but actual value is:
   const _3 = InField('bar', _1)
   t.is(
     errorToHumanReadable(_3),
-    `Problem with a value at _.bar.
+    `Problem with a value at _.bar
 Expecting a STRING but actual value is:
 
     {
@@ -164,7 +273,7 @@ Expecting a STRING but actual value is:
   const _4 = AtIndex(83, _1)
   t.is(
     errorToHumanReadable(_4),
-    `Problem with a value at _[83].
+    `Problem with a value at _[83]
 Expecting a STRING but actual value is:
 
     {
@@ -181,7 +290,7 @@ test('EXPECT_BOOLEAN', t => {
   const _0 = ExpectBoolean(undefined)
   t.is(
     errorToHumanReadable(_0),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting a BOOLEAN but actual value is:
 
     undefined`
@@ -192,7 +301,7 @@ Expecting a BOOLEAN but actual value is:
   })
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting a BOOLEAN but actual value is:
 
   {
@@ -207,7 +316,7 @@ Expecting a BOOLEAN but actual value is:
   const _2 = Optional(_1)
   t.is(
     errorToHumanReadable(_2),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OPTIONAL BOOLEAN but actual value is:
 
     {
@@ -222,7 +331,7 @@ Expecting an OPTIONAL BOOLEAN but actual value is:
   const _3 = InField('bar', _1)
   t.is(
     errorToHumanReadable(_3),
-    `Problem with a value at _.bar.
+    `Problem with a value at _.bar
 Expecting a BOOLEAN but actual value is:
 
     {
@@ -237,7 +346,7 @@ Expecting a BOOLEAN but actual value is:
   const _4 = AtIndex(83, _1)
   t.is(
     errorToHumanReadable(_4),
-    `Problem with a value at _[83].
+    `Problem with a value at _[83]
 Expecting a BOOLEAN but actual value is:
 
     {
@@ -254,7 +363,7 @@ test('EXPECT_INT', t => {
   const _0 = ExpectInt(undefined)
   t.is(
     errorToHumanReadable(_0),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an INTEGER but actual value is:
 
     undefined`
@@ -265,7 +374,7 @@ Expecting an INTEGER but actual value is:
   })
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an INTEGER but actual value is:
 
   {
@@ -280,7 +389,7 @@ Expecting an INTEGER but actual value is:
   const _2 = Optional(_1)
   t.is(
     errorToHumanReadable(_2),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OPTIONAL INTEGER but actual value is:
 
     {
@@ -295,7 +404,7 @@ Expecting an OPTIONAL INTEGER but actual value is:
   const _3 = InField('bar', _1)
   t.is(
     errorToHumanReadable(_3),
-    `Problem with a value at _.bar.
+    `Problem with a value at _.bar
 Expecting an INTEGER but actual value is:
 
     {
@@ -310,7 +419,7 @@ Expecting an INTEGER but actual value is:
   const _4 = AtIndex(83, _1)
   t.is(
     errorToHumanReadable(_4),
-    `Problem with a value at _[83].
+    `Problem with a value at _[83]
 Expecting an INTEGER but actual value is:
 
     {
@@ -327,7 +436,7 @@ test('EXPECT_FLOAT', t => {
   const _0 = ExpectFloat(undefined)
   t.is(
     errorToHumanReadable(_0),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting a FLOAT but actual value is:
 
     undefined`
@@ -338,7 +447,7 @@ Expecting a FLOAT but actual value is:
   })
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting a FLOAT but actual value is:
 
   {
@@ -353,7 +462,7 @@ Expecting a FLOAT but actual value is:
   const _2 = Optional(_1)
   t.is(
     errorToHumanReadable(_2),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OPTIONAL FLOAT but actual value is:
 
     {
@@ -368,7 +477,7 @@ Expecting an OPTIONAL FLOAT but actual value is:
   const _3 = InField('bar', _1)
   t.is(
     errorToHumanReadable(_3),
-    `Problem with a value at _.bar.
+    `Problem with a value at _.bar
 Expecting a FLOAT but actual value is:
 
     {
@@ -383,7 +492,7 @@ Expecting a FLOAT but actual value is:
   const _4 = AtIndex(83, _1)
   t.is(
     errorToHumanReadable(_4),
-    `Problem with a value at _[83].
+    `Problem with a value at _[83]
 Expecting a FLOAT but actual value is:
 
     {
@@ -400,7 +509,7 @@ test('EXPECT_OBJECT', t => {
   const _0 = ExpectObject(undefined)
   t.is(
     errorToHumanReadable(_0),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OBJECT but actual value is:
 
     undefined`
@@ -411,7 +520,7 @@ Expecting an OBJECT but actual value is:
   })
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OBJECT but actual value is:
 
   {
@@ -426,7 +535,7 @@ Expecting an OBJECT but actual value is:
   const _2 = Optional(_1)
   t.is(
     errorToHumanReadable(_2),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OPTIONAL OBJECT but actual value is:
 
     {
@@ -441,7 +550,7 @@ Expecting an OPTIONAL OBJECT but actual value is:
   const _3 = InField('bar', _1)
   t.is(
     errorToHumanReadable(_3),
-    `Problem with a value at _.bar.
+    `Problem with a value at _.bar
 Expecting an OBJECT but actual value is:
 
     {
@@ -456,7 +565,7 @@ Expecting an OBJECT but actual value is:
   const _4 = AtIndex(83, _1)
   t.is(
     errorToHumanReadable(_4),
-    `Problem with a value at _[83].
+    `Problem with a value at _[83]
 Expecting an OBJECT but actual value is:
 
     {
@@ -473,7 +582,7 @@ test('EXPECT_ARRAY', t => {
   const _0 = ExpectArray(undefined)
   t.is(
     errorToHumanReadable(_0),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an ARRAY but actual value is:
 
     undefined`
@@ -484,7 +593,7 @@ Expecting an ARRAY but actual value is:
   })
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an ARRAY but actual value is:
 
   {
@@ -499,7 +608,7 @@ Expecting an ARRAY but actual value is:
   const _2 = Optional(_1)
   t.is(
     errorToHumanReadable(_2),
-    `Problem with the given value.
+    `Problem with the given value
 Expecting an OPTIONAL ARRAY but actual value is:
 
     {
@@ -514,7 +623,7 @@ Expecting an OPTIONAL ARRAY but actual value is:
   const _3 = InField('bar', _1)
   t.is(
     errorToHumanReadable(_3),
-    `Problem with a value at _.bar.
+    `Problem with a value at _.bar
 Expecting an ARRAY but actual value is:
 
     {
@@ -529,7 +638,7 @@ Expecting an ARRAY but actual value is:
   const _4 = AtIndex(83, _1)
   t.is(
     errorToHumanReadable(_4),
-    `Problem with a value at _[83].
+    `Problem with a value at _[83]
 Expecting an ARRAY but actual value is:
 
     {
@@ -542,4 +651,133 @@ Expecting an ARRAY but actual value is:
   )
 })
 
-test.todo('ENUMS')
+test('EXPECT_ENUMS', t => {
+  const _0 = ExpectEnums(['str', false, 123, null], undefined)
+  t.is(
+    errorToHumanReadable(_0),
+    `Problem with the given value
+Expecting ENUMS "str"|false|123|null but actual value is:
+
+    undefined`
+  )
+
+  const _1 = ExpectEnums(['str', false, 123, null], {
+    foo: [{ bar: 123 }]
+  })
+  t.is(
+    errorToHumanReadable(_1, { indent: 2 }),
+    `Problem with the given value
+Expecting ENUMS "str"|false|123|null but actual value is:
+
+  {
+    "foo": [
+      {
+        "bar": 123
+      }
+    ]
+  }`
+  )
+
+  const _2 = Optional(_1)
+  t.is(
+    errorToHumanReadable(_2),
+    `Problem with the given value
+Expecting OPTIONAL ENUMS "str"|false|123|null but actual value is:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+
+  const _3 = InField('bar', _1)
+  t.is(
+    errorToHumanReadable(_3),
+    `Problem with a value at _.bar
+Expecting ENUMS "str"|false|123|null but actual value is:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+
+  const _4 = AtIndex(83, _1)
+  t.is(
+    errorToHumanReadable(_4),
+    `Problem with a value at _[83]
+Expecting ENUMS "str"|false|123|null but actual value is:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+
+  const _5 = ExpectEnums([], {
+    foo: [{ bar: 123 }]
+  })
+  t.is(
+    errorToHumanReadable(_5, { indent: 2 }),
+    `Ran into enums with no possibilities:
+
+  {
+    "foo": [
+      {
+        "bar": 123
+      }
+    ]
+  }`
+  )
+
+  const _6 = Optional(_5)
+  t.is(
+    errorToHumanReadable(_6),
+    `Ran into enums with no possibilities:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+
+  const _7 = InField('bar', _5)
+  t.is(
+    errorToHumanReadable(_7),
+    `Ran into enums with no possibilities at _.bar:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+
+  const _8 = AtIndex(83, _5)
+  t.is(
+    errorToHumanReadable(_8),
+    `Ran into enums with no possibilities at _[83]:
+
+    {
+        "foo": [
+            {
+                "bar": 123
+            }
+        ]
+    }`
+  )
+})

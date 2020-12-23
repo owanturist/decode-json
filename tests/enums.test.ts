@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, Enums, InField, AtIndex } from './error'
+import { Optional, ExpectEnums, InField, AtIndex } from './error'
 
 interface Currency {
   toCode(): string
@@ -25,11 +25,14 @@ test('Decode.enums()', t => {
   t.is(_0.decode('str').value, USD)
   t.is(_0.decode(true).value, RUB)
 
-  t.deepEqual(_0.decode(undefined).error, Enums([9, 'str', true], undefined))
-  t.deepEqual(_0.decode(null).error, Enums([9, 'str', true], null))
-  t.deepEqual(_0.decode(1).error, Enums([9, 'str', true], 1))
-  t.deepEqual(_0.decode('msg').error, Enums([9, 'str', true], 'msg'))
-  t.deepEqual(_0.decode(false).error, Enums([9, 'str', true], false))
+  t.deepEqual(
+    _0.decode(undefined).error,
+    ExpectEnums([9, 'str', true], undefined)
+  )
+  t.deepEqual(_0.decode(null).error, ExpectEnums([9, 'str', true], null))
+  t.deepEqual(_0.decode(1).error, ExpectEnums([9, 'str', true], 1))
+  t.deepEqual(_0.decode('msg').error, ExpectEnums([9, 'str', true], 'msg'))
+  t.deepEqual(_0.decode(false).error, ExpectEnums([9, 'str', true], false))
 
   // Decoder<Currency>
   const _1 = Decode.enums([
@@ -43,7 +46,7 @@ test('Decode.enums()', t => {
   // Decoder<unknown>
   const _2 = Decode.enums([])
 
-  t.deepEqual(_2.decode({}).error, Enums([], {}))
+  t.deepEqual(_2.decode({}).error, ExpectEnums([], {}))
 })
 
 test('Decode.optional.enums()', t => {
@@ -62,11 +65,11 @@ test('Decode.optional.enums()', t => {
 
   t.deepEqual(
     _0.decode('str').error,
-    Optional(Enums(['eur', 'usd', 'rub'], 'str'))
+    Optional(ExpectEnums(['eur', 'usd', 'rub'], 'str'))
   )
   t.deepEqual(
     _0.decode(true).error,
-    Optional(Enums(['eur', 'usd', 'rub'], true))
+    Optional(ExpectEnums(['eur', 'usd', 'rub'], true))
   )
 })
 
@@ -82,7 +85,10 @@ test('Decode.field().enums()', t => {
   t.is(_0.decode({ _0: 2 }).value, 'second')
   t.is(_0.decode({ _0: 3 }).value, 'third')
 
-  t.deepEqual(_0.decode({ _0: 0 }).error, InField('_0', Enums([1, 2, 3], 0)))
+  t.deepEqual(
+    _0.decode({ _0: 0 }).error,
+    InField('_0', ExpectEnums([1, 2, 3], 0))
+  )
 })
 
 test('Decode.field().optional.enums()', t => {
@@ -99,7 +105,7 @@ test('Decode.field().optional.enums()', t => {
 
   t.deepEqual(
     _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(Enums(['true', 'false'], 'str')))
+    InField('_0', Optional(ExpectEnums(['true', 'false'], 'str')))
   )
 })
 
@@ -117,11 +123,11 @@ test('Decode.index().enums()', t => {
 
   t.deepEqual(
     _0.decode([0, null]).error,
-    AtIndex(1, Enums([false, 1, 2], null))
+    AtIndex(1, ExpectEnums([false, 1, 2], null))
   )
   t.deepEqual(
     _0.decode([0, 1.23]).error,
-    AtIndex(1, Enums([false, 1, 2], 1.23))
+    AtIndex(1, ExpectEnums([false, 1, 2], 1.23))
   )
 })
 
@@ -139,6 +145,6 @@ test('Decode.index().optional.enums()', t => {
 
   t.deepEqual(
     _0.decode(['', {}]).error,
-    AtIndex(1, Optional(Enums(['yes', 'no'], {})))
+    AtIndex(1, Optional(ExpectEnums(['yes', 'no'], {})))
   )
 })

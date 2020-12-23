@@ -39,7 +39,7 @@ export type DecodeError =
   | { type: 'RUNTIME_EXCEPTION'; error: Error }
   | { type: 'REQUIRED_FIELD'; name: string; object: Record<string, unknown> }
   | { type: 'REQUIRED_INDEX'; position: number; array: Array<unknown> }
-  | { type: 'FAILURE'; message: string; source: unknown }
+  | { type: 'FAILURE'; template: string; source: unknown }
   | { type: 'EXPECT_STRING'; source: unknown }
   | { type: 'EXPECT_BOOLEAN'; source: unknown }
   | { type: 'EXPECT_INT'; source: unknown }
@@ -47,7 +47,7 @@ export type DecodeError =
   | { type: 'EXPECT_OBJECT'; source: unknown }
   | { type: 'EXPECT_ARRAY'; source: unknown }
   | {
-      type: 'ENUMS'
+      type: 'EXPECT_ENUMS'
       variants: Array<string | number | boolean | null>
       source: unknown
     }
@@ -102,16 +102,16 @@ const RequiredIndexError = (
   array: Array<unknown>
 ): DecodeError => ({ type: 'REQUIRED_INDEX', position, array })
 
-const FailureError = (message: string, source: unknown): DecodeError => ({
+const FailureError = (template: string, source: unknown): DecodeError => ({
   type: 'FAILURE',
-  message,
+  template,
   source
 })
 
-const EnumsError = (
+const ExpectEnumsError = (
   variants: Array<string | number | boolean | null>,
   source: unknown
-): DecodeError => ({ type: 'ENUMS', variants, source })
+): DecodeError => ({ type: 'EXPECT_ENUMS', variants, source })
 
 const ExpectStringError = (source: unknown): DecodeError => ({
   type: 'EXPECT_STRING',
@@ -444,7 +444,7 @@ class EnumsDecoder<T> extends DecoderImpl<T> {
     }
 
     return Left(
-      EnumsError(
+      ExpectEnumsError(
         this.variants.map(([variant]) => variant),
         input
       )

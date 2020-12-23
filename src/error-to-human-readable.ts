@@ -37,6 +37,26 @@ const runtimeExceptionToHumanReadable = (
   ].join('')
 }
 
+const problemWithValue = (context: Array<string>): string => {
+  return [
+    'Problem with ',
+    context.length === 0 ? 'the given value' : `a value at ${path(context)}`
+  ].join('')
+}
+
+const expectingValue = (
+  prefix: string,
+  type: string,
+  optional: boolean
+): string => {
+  return [
+    'Expecting ',
+    optional ? `${prefix && 'an '}OPTIONAL ` : prefix,
+    type,
+    ' but actual value is:'
+  ].join('')
+}
+
 const endValueToHumanReadable = (
   prefix: string,
   type: string,
@@ -46,15 +66,52 @@ const endValueToHumanReadable = (
   context: Array<string>
 ): string => {
   return [
-    'Problem with ',
-    context.length === 0 ? 'the given value' : `a value at ${path(context)}`,
-    '.\nExpecting ',
-    optional ? 'an OPTIONAL' : prefix,
-    ' ',
-    type,
-    ' but actual value is:\n\n',
+    problemWithValue(context),
+    '\n',
+    expectingValue(prefix, type, optional),
+    '\n\n',
     stringifyJSON(indent, source)
   ].join('')
+}
+
+const enumsToHumanReadable = (
+  enums: Array<string | number | boolean | null>,
+  source: unknown,
+  optional: boolean,
+  indent: number,
+  context: Array<string>
+): string => {
+  if (enums.length === 0) {
+    return [
+      'Ran into enums with no possibilities',
+      context.length === 0 ? '' : ` at ${path(context)}`,
+      ':\n\n',
+      stringifyJSON(indent, source)
+    ].join('')
+  }
+
+  return [
+    problemWithValue(context),
+    '\n',
+    expectingValue(
+      '',
+      'ENUMS ' + enums.map(value => JSON.stringify(value)).join('|'),
+      optional
+    ),
+    '\n\n',
+    stringifyJSON(indent, source)
+  ].join('')
+}
+
+const failureToHumanReadable = (
+  template: string,
+  source: unknown,
+  indent: number,
+  context: Array<string>
+): string => {
+  return template
+    .replace(/{(path|context)}/g, path(context))
+    .replace(/{(source|json|value)}/g, stringifyJSON(indent, source))
 }
 
 const toHumanReadable = (
@@ -99,12 +156,17 @@ const toHumanReadable = (
     }
 
     case 'FAILURE': {
-      throw new Error('')
+      return failureToHumanReadable(
+        error.template,
+        error.source,
+        indent,
+        context
+      )
     }
 
     case 'EXPECT_STRING': {
       return endValueToHumanReadable(
-        'a',
+        'a ',
         'STRING',
         error.source,
         optional,
@@ -115,7 +177,7 @@ const toHumanReadable = (
 
     case 'EXPECT_BOOLEAN': {
       return endValueToHumanReadable(
-        'a',
+        'a ',
         'BOOLEAN',
         error.source,
         optional,
@@ -126,7 +188,7 @@ const toHumanReadable = (
 
     case 'EXPECT_INT': {
       return endValueToHumanReadable(
-        'an',
+        'an ',
         'INTEGER',
         error.source,
         optional,
@@ -137,7 +199,7 @@ const toHumanReadable = (
 
     case 'EXPECT_FLOAT': {
       return endValueToHumanReadable(
-        'a',
+        'a ',
         'FLOAT',
         error.source,
         optional,
@@ -148,7 +210,7 @@ const toHumanReadable = (
 
     case 'EXPECT_OBJECT': {
       return endValueToHumanReadable(
-        'an',
+        'an ',
         'OBJECT',
         error.source,
         optional,
@@ -159,7 +221,7 @@ const toHumanReadable = (
 
     case 'EXPECT_ARRAY': {
       return endValueToHumanReadable(
-        'an',
+        'an ',
         'ARRAY',
         error.source,
         optional,
@@ -168,8 +230,14 @@ const toHumanReadable = (
       )
     }
 
-    case 'ENUMS': {
-      throw new Error('')
+    case 'EXPECT_ENUMS': {
+      return enumsToHumanReadable(
+        error.variants,
+        error.source,
+        optional,
+        indent,
+        context
+      )
     }
   }
 }

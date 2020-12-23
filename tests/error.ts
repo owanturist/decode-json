@@ -42,16 +42,16 @@ export const RequiredIndex = (
   array: Array<unknown>
 ): DecodeError => ({ type: 'REQUIRED_INDEX', position, array })
 
-export const Failure = (message: string, source: unknown): DecodeError => ({
+export const Failure = (template: string, source: unknown): DecodeError => ({
   type: 'FAILURE',
-  message,
+  template,
   source
 })
 
-export const Enums = (
+export const ExpectEnums = (
   variants: Array<string | number | boolean | null>,
   source: unknown
-): DecodeError => ({ type: 'ENUMS', variants, source })
+): DecodeError => ({ type: 'EXPECT_ENUMS', variants, source })
 
 export const ExpectString = (source: unknown): DecodeError => ({
   type: 'EXPECT_STRING',
