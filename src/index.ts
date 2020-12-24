@@ -249,6 +249,23 @@ class UnknownDecoder extends DecoderImpl<unknown> {
   }
 }
 
+class ExactDecoder<T> extends DecoderImpl<T> {
+  public constructor(
+    private readonly expect: string | number | boolean | null,
+    private readonly value: T
+  ) {
+    super()
+  }
+
+  protected run(input: unknown): DecodeResult<DecodeError, T> {
+    if (input === this.expect) {
+      return Right(this.value)
+    }
+
+    return Left(ExpectEnumsError([this.expect], input))
+  }
+}
+
 class FailDecoder extends DecoderImpl<never> {
   public constructor(private readonly message: string) {
     super()
@@ -536,6 +553,9 @@ export interface OptionalDecoder {
   int: Decoder<null | number>
   float: Decoder<null | number>
 
+  exact<T extends string | number | boolean>(value: T): Decoder<null | T>
+  exact<T>(expect: string | number | boolean, value: T): Decoder<null | T>
+
   of<T>(decoder: Decoder<T>): Decoder<null | T>
   lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<null | T>
 
@@ -590,6 +610,12 @@ class Optional implements OptionalDecoder {
     return this.of(float)
   }
 
+  public exact<T>(
+    ...args: [string | number | boolean] | [string | number | boolean, T]
+  ): Decoder<string | number | boolean | null | T> {
+    return this.of(exactHelp(args))
+  }
+
   public of<T>(decoder: Decoder<T>): Decoder<null | T> {
     return this.createDecoder(new NullableDecoder(decoder))
   }
@@ -611,7 +637,7 @@ class Optional implements OptionalDecoder {
       | [Decoder<T>]
       | [(key: string) => DecodeResult<string, K>, Decoder<T>]
   ): Decoder<null | Array<[K | string, T]>> {
-    return this.of(keyValueHelp(...args))
+    return this.of(keyValueHelp(args))
   }
 
   public oneOf<T>(options: Array<Decoder<T>>): Decoder<null | T> {
@@ -649,6 +675,9 @@ export interface RequiredDecodePath {
   boolean: Decoder<boolean>
   int: Decoder<number>
   float: Decoder<number>
+
+  exact<T extends string | number | boolean | null>(value: T): Decoder<T>
+  exact<T>(expect: string | number | boolean | null, value: T): Decoder<T>
 
   of<T>(decoder: Decoder<T>): Decoder<T>
   lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T>
@@ -704,6 +733,14 @@ class RequiredPath implements RequiredDecodePath {
     return this.of(float)
   }
 
+  public exact<T>(
+    ...args:
+      | [string | number | boolean | null]
+      | [string | number | boolean | null, T]
+  ): Decoder<string | number | boolean | null | T> {
+    return this.of(exactHelp(args))
+  }
+
   public of<T>(decoder: Decoder<T>): Decoder<T> {
     return this.createDecoder(decoder)
   }
@@ -731,7 +768,7 @@ class RequiredPath implements RequiredDecodePath {
       | [Decoder<T>]
       | [(key: string) => DecodeResult<string, K>, Decoder<T>]
   ): Decoder<Array<[K | string, T]>> {
-    return this.of(keyValueHelp(...args))
+    return this.of(keyValueHelp(args))
   }
 
   public oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
@@ -781,6 +818,31 @@ const int: Decoder<number> = new PrimitiveDecoder(ExpectIntError, isInteger)
 
 const float: Decoder<number> = new PrimitiveDecoder(ExpectFloatError, isNumber)
 
+const exactHelp = <T>(
+  args:
+    | [string | number | boolean | null]
+    | [string | number | boolean | null, T]
+): Decoder<string | number | boolean | null | T> => {
+  if (args.length === 1) {
+    return new ExactDecoder(args[0], args[0])
+  }
+
+  return new ExactDecoder(args[0], args[1])
+}
+
+function exact<T extends string | number | boolean | null>(value: T): Decoder<T>
+function exact<T>(
+  expect: string | number | boolean | null,
+  value: T
+): Decoder<T>
+function exact<T>(
+  ...args:
+    | [string | number | boolean | null]
+    | [string | number | boolean | null, T]
+): Decoder<string | number | boolean | null | T> {
+  return exactHelp(args)
+}
+
 function fail(message: string): Decoder<never> {
   return new FailDecoder(message)
 }
@@ -804,7 +866,7 @@ function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
 }
 
 const keyValueHelp = <K, T>(
-  ...args: [Decoder<T>] | [(key: string) => DecodeResult<string, K>, Decoder<T>]
+  args: [Decoder<T>] | [(key: string) => DecodeResult<string, K>, Decoder<T>]
 ): Decoder<Array<[K | string, T]>> => {
   const [convertKey, itemDecoder] = args.length === 1 ? [Right, args[0]] : args
 
@@ -819,7 +881,7 @@ function keyValue<K, T>(
 function keyValue<K, T>(
   ...args: [Decoder<T>] | [(key: string) => DecodeResult<string, K>, Decoder<T>]
 ): Decoder<Array<[K | string, T]>> {
-  return keyValueHelp(...args)
+  return keyValueHelp(args)
 }
 
 function oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
@@ -858,6 +920,7 @@ export default {
   boolean,
   int,
   float,
+  exact,
 
   fail,
   succeed,

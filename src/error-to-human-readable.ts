@@ -156,6 +156,18 @@ const enumsToHumanReadable = (
     ].join('')
   }
 
+  if (enums.length === 1) {
+    return [
+      problemWithValue(context),
+      '\n',
+      'Expecting an EXACT value ',
+      JSON.stringify(enums[0]),
+      ' but actual value is',
+      '\n\n',
+      stringifyJSON(indent, source)
+    ].join('')
+  }
+
   return [
     problemWithValue(context),
     '\n',
