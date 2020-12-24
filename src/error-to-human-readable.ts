@@ -57,6 +57,36 @@ const expectingValue = (
   ].join('')
 }
 
+const requiredFieldToHumanReadable = (
+  fieldName: string,
+  source: Record<string, unknown>,
+  indent: number,
+  context: Array<string>
+): string => {
+  return [
+    problemWithValue(context),
+    '\n',
+    `Expecting an OBJECT with a FIELD named '${fieldName}':`,
+    '\n\n',
+    stringifyJSON(indent, source)
+  ].join('')
+}
+
+const requiredIndexToHumanReadable = (
+  position: number,
+  source: Array<unknown>,
+  indent: number,
+  context: Array<string>
+): string => {
+  return [
+    problemWithValue(context),
+    '\n',
+    `Expecting an ARRAY with an ELEMENT at [${position}] but only see ${source.length} entries:`,
+    '\n\n',
+    stringifyJSON(indent, source)
+  ].join('')
+}
+
 const endValueToHumanReadable = (
   prefix: string,
   type: string,
@@ -110,7 +140,7 @@ const failureToHumanReadable = (
   context: Array<string>
 ): string => {
   return template
-    .replace(/{(path|context)}/g, path(context))
+    .replace(/{(path|context|location)}/g, path(context))
     .replace(/{(source|json|value)}/g, stringifyJSON(indent, source))
 }
 
@@ -148,16 +178,26 @@ const toHumanReadable = (
     }
 
     case 'REQUIRED_FIELD': {
-      throw new Error('')
+      return requiredFieldToHumanReadable(
+        error.name,
+        error.source,
+        indent,
+        context
+      )
     }
 
     case 'REQUIRED_INDEX': {
-      throw new Error('')
+      return requiredIndexToHumanReadable(
+        error.position,
+        error.source,
+        indent,
+        context
+      )
     }
 
     case 'FAILURE': {
       return failureToHumanReadable(
-        error.template,
+        error.message,
         error.source,
         indent,
         context

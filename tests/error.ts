@@ -34,17 +34,17 @@ export const AtIndex = (position: number, error: DecodeError): DecodeError => ({
 
 export const RequiredField = (
   name: string,
-  object: Record<string, unknown>
-): DecodeError => ({ type: 'REQUIRED_FIELD', name, object })
+  source: Record<string, unknown>
+): DecodeError => ({ type: 'REQUIRED_FIELD', name, source })
 
 export const RequiredIndex = (
   position: number,
-  array: Array<unknown>
-): DecodeError => ({ type: 'REQUIRED_INDEX', position, array })
+  source: Array<unknown>
+): DecodeError => ({ type: 'REQUIRED_INDEX', position, source })
 
-export const Failure = (template: string, source: unknown): DecodeError => ({
+export const Failure = (message: string, source: unknown): DecodeError => ({
   type: 'FAILURE',
-  template,
+  message,
   source
 })
 

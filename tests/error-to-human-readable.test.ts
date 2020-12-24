@@ -10,6 +10,8 @@ import {
   InField,
   AtIndex,
   Failure,
+  RequiredField,
+  RequiredIndex,
   ExpectString,
   ExpectBoolean,
   ExpectInt,
@@ -100,9 +102,113 @@ test('RUNTIME_EXCEPTION', t => {
   )
 })
 
-test.todo('REQUIRED_FIELD')
+test('REQUIRED_FIELD', t => {
+  const _0 = RequiredField('foo', { bar: [123] })
+  t.is(
+    errorToHumanReadable(_0, { indent: 2 }),
+    `Problem with the given value
+Expecting an OBJECT with a FIELD named 'foo':
 
-test.todo('REQUIRED_INDEX')
+  {
+    "bar": [
+      123
+    ]
+  }`
+  )
+
+  const _1 = Optional(_0)
+  t.is(
+    errorToHumanReadable(_1),
+    `Problem with the given value
+Expecting an OBJECT with a FIELD named 'foo':
+
+    {
+        "bar": [
+            123
+        ]
+    }`
+  )
+
+  const _2 = InField('bar', _0)
+  t.is(
+    errorToHumanReadable(_2),
+    `Problem with a value at _.bar
+Expecting an OBJECT with a FIELD named 'foo':
+
+    {
+        "bar": [
+            123
+        ]
+    }`
+  )
+
+  const _3 = AtIndex(83, _0)
+  t.is(
+    errorToHumanReadable(_3),
+    `Problem with a value at _[83]
+Expecting an OBJECT with a FIELD named 'foo':
+
+    {
+        "bar": [
+            123
+        ]
+    }`
+  )
+})
+
+test('REQUIRED_INDEX', t => {
+  const _0 = RequiredIndex(42, [{ bar: 123 }])
+  t.is(
+    errorToHumanReadable(_0, { indent: 2 }),
+    `Problem with the given value
+Expecting an ARRAY with an ELEMENT at [42] but only see 1 entries:
+
+  [
+    {
+      "bar": 123
+    }
+  ]`
+  )
+
+  const _1 = Optional(_0)
+  t.is(
+    errorToHumanReadable(_1),
+    `Problem with the given value
+Expecting an ARRAY with an ELEMENT at [42] but only see 1 entries:
+
+    [
+        {
+            "bar": 123
+        }
+    ]`
+  )
+
+  const _2 = InField('bar', _0)
+  t.is(
+    errorToHumanReadable(_2),
+    `Problem with a value at _.bar
+Expecting an ARRAY with an ELEMENT at [42] but only see 1 entries:
+
+    [
+        {
+            "bar": 123
+        }
+    ]`
+  )
+
+  const _3 = AtIndex(83, _0)
+  t.is(
+    errorToHumanReadable(_3),
+    `Problem with a value at _[83]
+Expecting an ARRAY with an ELEMENT at [42] but only see 1 entries:
+
+    [
+        {
+            "bar": 123
+        }
+    ]`
+  )
+})
 
 test('FAILURE', t => {
   const template =

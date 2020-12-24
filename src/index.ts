@@ -37,9 +37,9 @@ export type DecodeError =
   | { type: 'AT_INDEX'; position: number; error: DecodeError }
   | { type: 'ONE_OF'; errors: Array<DecodeError> }
   | { type: 'RUNTIME_EXCEPTION'; error: Error }
-  | { type: 'REQUIRED_FIELD'; name: string; object: Record<string, unknown> }
-  | { type: 'REQUIRED_INDEX'; position: number; array: Array<unknown> }
-  | { type: 'FAILURE'; template: string; source: unknown }
+  | { type: 'REQUIRED_FIELD'; name: string; source: Record<string, unknown> }
+  | { type: 'REQUIRED_INDEX'; position: number; source: Array<unknown> }
+  | { type: 'FAILURE'; message: string; source: unknown }
   | { type: 'EXPECT_STRING'; source: unknown }
   | { type: 'EXPECT_BOOLEAN'; source: unknown }
   | { type: 'EXPECT_INT'; source: unknown }
@@ -94,17 +94,17 @@ const AtIndexError = (position: number, error: DecodeError): DecodeError => ({
 
 const RequiredFieldError = (
   name: string,
-  object: Record<string, unknown>
-): DecodeError => ({ type: 'REQUIRED_FIELD', name, object })
+  source: Record<string, unknown>
+): DecodeError => ({ type: 'REQUIRED_FIELD', name, source })
 
 const RequiredIndexError = (
   position: number,
-  array: Array<unknown>
-): DecodeError => ({ type: 'REQUIRED_INDEX', position, array })
+  source: Array<unknown>
+): DecodeError => ({ type: 'REQUIRED_INDEX', position, source })
 
-const FailureError = (template: string, source: unknown): DecodeError => ({
+const FailureError = (message: string, source: unknown): DecodeError => ({
   type: 'FAILURE',
-  template,
+  message,
   source
 })
 
