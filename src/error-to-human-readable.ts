@@ -10,33 +10,22 @@ const wrapFieldName = (name: string): string => {
 
 const spaces = (n: number): string => new Array(Math.max(0, n) + 1).join(' ')
 
+const shiftRight = (n: number, text: string): string => {
+  const space = spaces(n)
+
+  return space + text.replace(/\n/g, '\n' + space).replace(/\n\s+\n/g, '\n\n')
+}
+
 const path = (context: Array<string>): string => `_${context.join('')}`
 
 const stringifyJSON = (indent: number, source: unknown): string => {
-  const space = spaces(indent)
-
-  return [
-    space,
+  return shiftRight(
+    indent,
     typeof source === 'undefined'
       ? 'undefined'
-      : JSON.stringify(source, null, indent).replace(/\n/g, '\n' + space)
-  ].join('')
+      : JSON.stringify(source, null, indent)
+  )
 }
-
-const runtimeExceptionToHumanReadable = (
-  runtimeError: Error,
-  indent: number,
-  context: Array<string>
-): string => {
-  return [
-    'Unexpected runtime error',
-    context.length === 0 ? '' : ` at ${path(context)}`,
-    ':\n\n',
-    spaces(indent),
-    runtimeError.message
-  ].join('')
-}
-
 const problemWithValue = (context: Array<string>): string => {
   return [
     'Problem with ',
@@ -53,7 +42,54 @@ const expectingValue = (
     'Expecting ',
     optional ? `${prefix && 'an '}OPTIONAL ` : prefix,
     type,
-    ' but actual value is:'
+    ' but actual value is'
+  ].join('')
+}
+
+const oneOfToHumanReadable = (
+  errors: Array<DecodeError>,
+  optional: boolean,
+  indent: number,
+  context: Array<string>
+): string => {
+  if (errors.length === 0) {
+    return [
+      'Ran into oneOf with no possibilities',
+      context.length === 0 ? '' : ` at ${path(context)}`
+    ].join('')
+  }
+
+  if (errors.length === 1) {
+    return toHumanReadable(errors[0], optional, indent, context)
+  }
+
+  const lines: Array<string> = []
+
+  for (let index = 0; index < errors.length; index++) {
+    const line = toHumanReadable(errors[index], optional, indent, context)
+
+    lines.push(`(${index + 1}) ${line}`)
+  }
+
+  return [
+    'All possibilities of oneOf ',
+    context.length === 0 ? '' : `at ${path(context)} `,
+    `failed in the following ${errors.length} ways:\n\n`,
+    shiftRight(indent, lines.join('\n\n'))
+  ].join('')
+}
+
+const runtimeExceptionToHumanReadable = (
+  runtimeError: Error,
+  indent: number,
+  context: Array<string>
+): string => {
+  return [
+    'Unexpected runtime error',
+    context.length === 0 ? '' : ` at ${path(context)}`,
+    ':\n\n',
+    spaces(indent),
+    runtimeError.message
   ].join('')
 }
 
@@ -115,7 +151,7 @@ const enumsToHumanReadable = (
     return [
       'Ran into enums with no possibilities',
       context.length === 0 ? '' : ` at ${path(context)}`,
-      ':\n\n',
+      '\n\n',
       stringifyJSON(indent, source)
     ].join('')
   }
@@ -170,7 +206,7 @@ const toHumanReadable = (
     }
 
     case 'ONE_OF': {
-      throw new Error(String(optional))
+      return oneOfToHumanReadable(error.errors, optional, indent, context)
     }
 
     case 'RUNTIME_EXCEPTION': {

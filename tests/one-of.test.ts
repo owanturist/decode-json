@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode from '../src'
+import Decode, { Decoder } from '../src'
 import {
   Optional,
   OneOf,
@@ -12,7 +12,8 @@ import {
   ExpectString,
   ExpectInt,
   ExpectFloat,
-  ExpectBoolean
+  ExpectBoolean,
+  RequiredField
 } from './error'
 
 test('Decode.oneOf()', t => {
@@ -178,5 +179,96 @@ test('Decode.index().optional.oneOf()', t => {
   t.deepEqual(
     _0.decode(['', {}]).error,
     AtIndex(1, Optional(OneOf([ExpectString({}), ExpectBoolean({})])))
+  )
+})
+
+interface User {
+  id: string
+  age: number
+  username: string
+  lastActive: Date
+}
+
+test('Real world example', t => {
+  const dateDecoder = Decode.oneOf([
+    Decode.int.map(timestamp => new Date(timestamp)),
+    Decode.string.chain(str => {
+      const date = new Date(str)
+
+      if (isNaN(date.getMilliseconds())) {
+        return Decode.fail(`Wrong string date "${str}" at {location}`)
+      }
+
+      return Decode.succeed(date)
+    })
+  ])
+
+  const userDecoder: Decoder<User> = Decode.oneOf([
+    Decode.shape({
+      id: Decode.field('uuid').string,
+      age: Decode.field('user_age').int,
+      username: Decode.field('user_name').string,
+      lastActive: Decode.field('last_active').of(dateDecoder)
+    }),
+    Decode.shape({
+      id: Decode.field('id').string,
+      age: Decode.field('age').int,
+      username: Decode.field('username').string,
+      lastActive: Decode.field('last_activity').of(dateDecoder)
+    })
+  ])
+
+  t.deepEqual(
+    userDecoder.decode({
+      uuid: 'i1',
+      user_age: 27,
+      user_name: 'John',
+      last_active: '12-24-2020'
+    }).value,
+    {
+      id: 'i1',
+      age: 27,
+      username: 'John',
+      lastActive: new Date('12-24-2020')
+    }
+  )
+
+  t.deepEqual(
+    userDecoder.decode({
+      id: 'j10',
+      age: 31,
+      username: 'Walter',
+      last_activity: 1608764400000
+    }).value,
+    {
+      id: 'j10',
+      age: 31,
+      username: 'Walter',
+      lastActive: new Date('12-24-2020')
+    }
+  )
+
+  const source = {
+    id: 'j10',
+    age: 31,
+    username: 'Walter',
+    last_activity: '24/12/2020'
+  }
+
+  t.deepEqual(
+    userDecoder.decode(source).error,
+    OneOf([
+      RequiredField('uuid', source),
+      InField(
+        'last_activity',
+        OneOf([
+          ExpectInt(source.last_activity),
+          Failure(
+            'Wrong string date "24/12/2020" at {location}',
+            source.last_activity
+          )
+        ])
+      )
+    ])
   )
 })

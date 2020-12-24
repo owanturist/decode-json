@@ -7,6 +7,7 @@ import {
   InvalidJson,
   RuntimeException,
   Optional,
+  OneOf,
   InField,
   AtIndex,
   Failure,
@@ -46,13 +47,100 @@ test('INVALID_JSON', t => {
   )
 })
 
-test.todo('OPTIONAL')
+test('ONE_OF', t => {
+  const _0 = OneOf([])
+  t.is(errorToHumanReadable(_0), `Ran into oneOf with no possibilities`)
 
-test.todo('IN_FIELD')
+  const _1 = InField('foo', _0)
+  t.is(
+    errorToHumanReadable(_1),
+    `Ran into oneOf with no possibilities at _.foo`
+  )
 
-test.todo('AT_INDEX')
+  const _2 = AtIndex(123, _0)
+  t.is(
+    errorToHumanReadable(_2),
+    `Ran into oneOf with no possibilities at _[123]`
+  )
 
-test.todo('ONE_OF')
+  const _4 = OneOf([InField('foo', ExpectString([123]))])
+  t.is(
+    errorToHumanReadable(_4),
+    `Problem with a value at _.foo
+Expecting a STRING but actual value is
+
+    [
+        123
+    ]`
+  )
+
+  const _5 = AtIndex(82, _4)
+  t.is(
+    errorToHumanReadable(_5),
+    `Problem with a value at _[82].foo
+Expecting a STRING but actual value is
+
+    [
+        123
+    ]`
+  )
+
+  const _6 = OneOf([
+    InField('bar', ExpectArray({ baz: 'str' })),
+    OneOf([
+      AtIndex(81, ExpectBoolean(123)),
+      Optional(InField('foo', ExpectInt(false)))
+    ])
+  ])
+  t.is(
+    errorToHumanReadable(_6),
+    `All possibilities of oneOf failed in the following 2 ways:
+
+    (1) Problem with a value at _.bar
+    Expecting an ARRAY but actual value is
+
+        {
+            "baz": "str"
+        }
+
+    (2) All possibilities of oneOf failed in the following 2 ways:
+
+        (1) Problem with a value at _[81]
+        Expecting a BOOLEAN but actual value is
+
+            123
+
+        (2) Problem with a value at _.foo
+        Expecting an INTEGER but actual value is
+
+            false`
+  )
+
+  const _7 = InField('baz', _6)
+  t.is(
+    errorToHumanReadable(_7),
+    `All possibilities of oneOf at _.baz failed in the following 2 ways:
+
+    (1) Problem with a value at _.baz.bar
+    Expecting an ARRAY but actual value is
+
+        {
+            "baz": "str"
+        }
+
+    (2) All possibilities of oneOf at _.baz failed in the following 2 ways:
+
+        (1) Problem with a value at _.baz[81]
+        Expecting a BOOLEAN but actual value is
+
+            123
+
+        (2) Problem with a value at _.baz.foo
+        Expecting an INTEGER but actual value is
+
+            false`
+  )
+})
 
 test('RUNTIME_EXCEPTION', t => {
   const _0 = RuntimeException(new Error('Something went wrong'))
@@ -324,7 +412,7 @@ test('EXPECT_STRING', t => {
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting a STRING but actual value is:
+Expecting a STRING but actual value is
 
     undefined`
   )
@@ -335,7 +423,7 @@ Expecting a STRING but actual value is:
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting a STRING but actual value is:
+Expecting a STRING but actual value is
 
   {
     "foo": [
@@ -350,7 +438,7 @@ Expecting a STRING but actual value is:
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting an OPTIONAL STRING but actual value is:
+Expecting an OPTIONAL STRING but actual value is
 
     {
         "foo": [
@@ -365,7 +453,7 @@ Expecting an OPTIONAL STRING but actual value is:
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting a STRING but actual value is:
+Expecting a STRING but actual value is
 
     {
         "foo": [
@@ -380,7 +468,7 @@ Expecting a STRING but actual value is:
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting a STRING but actual value is:
+Expecting a STRING but actual value is
 
     {
         "foo": [
@@ -397,7 +485,7 @@ test('EXPECT_BOOLEAN', t => {
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting a BOOLEAN but actual value is:
+Expecting a BOOLEAN but actual value is
 
     undefined`
   )
@@ -408,7 +496,7 @@ Expecting a BOOLEAN but actual value is:
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting a BOOLEAN but actual value is:
+Expecting a BOOLEAN but actual value is
 
   {
     "foo": [
@@ -423,7 +511,7 @@ Expecting a BOOLEAN but actual value is:
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting an OPTIONAL BOOLEAN but actual value is:
+Expecting an OPTIONAL BOOLEAN but actual value is
 
     {
         "foo": [
@@ -438,7 +526,7 @@ Expecting an OPTIONAL BOOLEAN but actual value is:
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting a BOOLEAN but actual value is:
+Expecting a BOOLEAN but actual value is
 
     {
         "foo": [
@@ -453,7 +541,7 @@ Expecting a BOOLEAN but actual value is:
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting a BOOLEAN but actual value is:
+Expecting a BOOLEAN but actual value is
 
     {
         "foo": [
@@ -470,7 +558,7 @@ test('EXPECT_INT', t => {
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting an INTEGER but actual value is:
+Expecting an INTEGER but actual value is
 
     undefined`
   )
@@ -481,7 +569,7 @@ Expecting an INTEGER but actual value is:
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting an INTEGER but actual value is:
+Expecting an INTEGER but actual value is
 
   {
     "foo": [
@@ -496,7 +584,7 @@ Expecting an INTEGER but actual value is:
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting an OPTIONAL INTEGER but actual value is:
+Expecting an OPTIONAL INTEGER but actual value is
 
     {
         "foo": [
@@ -511,7 +599,7 @@ Expecting an OPTIONAL INTEGER but actual value is:
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting an INTEGER but actual value is:
+Expecting an INTEGER but actual value is
 
     {
         "foo": [
@@ -526,7 +614,7 @@ Expecting an INTEGER but actual value is:
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting an INTEGER but actual value is:
+Expecting an INTEGER but actual value is
 
     {
         "foo": [
@@ -543,7 +631,7 @@ test('EXPECT_FLOAT', t => {
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting a FLOAT but actual value is:
+Expecting a FLOAT but actual value is
 
     undefined`
   )
@@ -554,7 +642,7 @@ Expecting a FLOAT but actual value is:
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting a FLOAT but actual value is:
+Expecting a FLOAT but actual value is
 
   {
     "foo": [
@@ -569,7 +657,7 @@ Expecting a FLOAT but actual value is:
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting an OPTIONAL FLOAT but actual value is:
+Expecting an OPTIONAL FLOAT but actual value is
 
     {
         "foo": [
@@ -584,7 +672,7 @@ Expecting an OPTIONAL FLOAT but actual value is:
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting a FLOAT but actual value is:
+Expecting a FLOAT but actual value is
 
     {
         "foo": [
@@ -599,7 +687,7 @@ Expecting a FLOAT but actual value is:
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting a FLOAT but actual value is:
+Expecting a FLOAT but actual value is
 
     {
         "foo": [
@@ -616,7 +704,7 @@ test('EXPECT_OBJECT', t => {
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting an OBJECT but actual value is:
+Expecting an OBJECT but actual value is
 
     undefined`
   )
@@ -627,7 +715,7 @@ Expecting an OBJECT but actual value is:
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting an OBJECT but actual value is:
+Expecting an OBJECT but actual value is
 
   {
     "foo": [
@@ -642,7 +730,7 @@ Expecting an OBJECT but actual value is:
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting an OPTIONAL OBJECT but actual value is:
+Expecting an OPTIONAL OBJECT but actual value is
 
     {
         "foo": [
@@ -657,7 +745,7 @@ Expecting an OPTIONAL OBJECT but actual value is:
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting an OBJECT but actual value is:
+Expecting an OBJECT but actual value is
 
     {
         "foo": [
@@ -672,7 +760,7 @@ Expecting an OBJECT but actual value is:
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting an OBJECT but actual value is:
+Expecting an OBJECT but actual value is
 
     {
         "foo": [
@@ -689,7 +777,7 @@ test('EXPECT_ARRAY', t => {
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting an ARRAY but actual value is:
+Expecting an ARRAY but actual value is
 
     undefined`
   )
@@ -700,7 +788,7 @@ Expecting an ARRAY but actual value is:
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting an ARRAY but actual value is:
+Expecting an ARRAY but actual value is
 
   {
     "foo": [
@@ -715,7 +803,7 @@ Expecting an ARRAY but actual value is:
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting an OPTIONAL ARRAY but actual value is:
+Expecting an OPTIONAL ARRAY but actual value is
 
     {
         "foo": [
@@ -730,7 +818,7 @@ Expecting an OPTIONAL ARRAY but actual value is:
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting an ARRAY but actual value is:
+Expecting an ARRAY but actual value is
 
     {
         "foo": [
@@ -745,7 +833,7 @@ Expecting an ARRAY but actual value is:
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting an ARRAY but actual value is:
+Expecting an ARRAY but actual value is
 
     {
         "foo": [
@@ -762,7 +850,7 @@ test('EXPECT_ENUMS', t => {
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting ENUMS "str"|false|123|null but actual value is:
+Expecting ENUMS "str"|false|123|null but actual value is
 
     undefined`
   )
@@ -773,7 +861,7 @@ Expecting ENUMS "str"|false|123|null but actual value is:
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting ENUMS "str"|false|123|null but actual value is:
+Expecting ENUMS "str"|false|123|null but actual value is
 
   {
     "foo": [
@@ -788,7 +876,7 @@ Expecting ENUMS "str"|false|123|null but actual value is:
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting OPTIONAL ENUMS "str"|false|123|null but actual value is:
+Expecting OPTIONAL ENUMS "str"|false|123|null but actual value is
 
     {
         "foo": [
@@ -803,7 +891,7 @@ Expecting OPTIONAL ENUMS "str"|false|123|null but actual value is:
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting ENUMS "str"|false|123|null but actual value is:
+Expecting ENUMS "str"|false|123|null but actual value is
 
     {
         "foo": [
@@ -818,7 +906,7 @@ Expecting ENUMS "str"|false|123|null but actual value is:
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting ENUMS "str"|false|123|null but actual value is:
+Expecting ENUMS "str"|false|123|null but actual value is
 
     {
         "foo": [
@@ -834,7 +922,7 @@ Expecting ENUMS "str"|false|123|null but actual value is:
   })
   t.is(
     errorToHumanReadable(_5, { indent: 2 }),
-    `Ran into enums with no possibilities:
+    `Ran into enums with no possibilities
 
   {
     "foo": [
@@ -848,7 +936,7 @@ Expecting ENUMS "str"|false|123|null but actual value is:
   const _6 = Optional(_5)
   t.is(
     errorToHumanReadable(_6),
-    `Ran into enums with no possibilities:
+    `Ran into enums with no possibilities
 
     {
         "foo": [
@@ -862,7 +950,7 @@ Expecting ENUMS "str"|false|123|null but actual value is:
   const _7 = InField('bar', _5)
   t.is(
     errorToHumanReadable(_7),
-    `Ran into enums with no possibilities at _.bar:
+    `Ran into enums with no possibilities at _.bar
 
     {
         "foo": [
@@ -876,7 +964,7 @@ Expecting ENUMS "str"|false|123|null but actual value is:
   const _8 = AtIndex(83, _5)
   t.is(
     errorToHumanReadable(_8),
-    `Ran into enums with no possibilities at _[83]:
+    `Ran into enums with no possibilities at _[83]
 
     {
         "foo": [
