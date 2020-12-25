@@ -3,7 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, ExpectEnums, InField, AtIndex, OneOf } from './error'
+import { Optional, ExpectExact, InField, AtIndex, OneOf } from './error'
 
 interface Currency {
   toCode(): string
@@ -19,14 +19,11 @@ test('Decode.exact()', t => {
 
   t.is(_0.decode('SOME_STRING').value, 'SOME_STRING')
 
-  t.deepEqual(
-    _0.decode(undefined).error,
-    ExpectEnums(['SOME_STRING'], undefined)
-  )
-  t.deepEqual(_0.decode(null).error, ExpectEnums(['SOME_STRING'], null))
-  t.deepEqual(_0.decode(1).error, ExpectEnums(['SOME_STRING'], 1))
-  t.deepEqual(_0.decode('msg').error, ExpectEnums(['SOME_STRING'], 'msg'))
-  t.deepEqual(_0.decode(false).error, ExpectEnums(['SOME_STRING'], false))
+  t.deepEqual(_0.decode(undefined).error, ExpectExact('SOME_STRING', undefined))
+  t.deepEqual(_0.decode(null).error, ExpectExact('SOME_STRING', null))
+  t.deepEqual(_0.decode(1).error, ExpectExact('SOME_STRING', 1))
+  t.deepEqual(_0.decode('msg').error, ExpectExact('SOME_STRING', 'msg'))
+  t.deepEqual(_0.decode(false).error, ExpectExact('SOME_STRING', false))
 
   // Decoder<Currency>
   const _1 = Decode.exact(1, EUR)
@@ -42,8 +39,8 @@ test('Decode.optional.exact()', t => {
   t.is(_0.decode(null).value, null)
   t.is(_0.decode(false).value, false)
 
-  t.deepEqual(_0.decode('str').error, Optional(ExpectEnums([false], 'str')))
-  t.deepEqual(_0.decode(true).error, Optional(ExpectEnums([false], true)))
+  t.deepEqual(_0.decode('str').error, Optional(ExpectExact(false, 'str')))
+  t.deepEqual(_0.decode(true).error, Optional(ExpectExact(false, true)))
 
   // Decoder<Currency | null>
   const _1 = Decode.optional.exact('usd', USD)
@@ -59,7 +56,7 @@ test('Decode.field().exact()', t => {
 
   t.deepEqual(
     _0.decode({ _0: false }).error,
-    InField('_0', ExpectEnums([true], false))
+    InField('_0', ExpectExact(true, false))
   )
 })
 
@@ -73,7 +70,7 @@ test('Decode.field().optional.exact()', t => {
 
   t.deepEqual(
     _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(ExpectEnums([123], 'str')))
+    InField('_0', Optional(ExpectExact(123, 'str')))
   )
 })
 
@@ -83,14 +80,8 @@ test('Decode.index().exact()', t => {
 
   t.is(_0.decode([0, 'key']).value, 'key')
 
-  t.deepEqual(
-    _0.decode([0, null]).error,
-    AtIndex(1, ExpectEnums(['key'], null))
-  )
-  t.deepEqual(
-    _0.decode([0, 1.23]).error,
-    AtIndex(1, ExpectEnums(['key'], 1.23))
-  )
+  t.deepEqual(_0.decode([0, null]).error, AtIndex(1, ExpectExact('key', null)))
+  t.deepEqual(_0.decode([0, 1.23]).error, AtIndex(1, ExpectExact('key', 1.23)))
 })
 
 test('Decode.index().optional.exact()', t => {
@@ -101,10 +92,7 @@ test('Decode.index().optional.exact()', t => {
   t.is(_0.decode([0, null]).value, null)
   t.is(_0.decode([0, 0]).value, 0)
 
-  t.deepEqual(
-    _0.decode(['', 1]).error,
-    AtIndex(1, Optional(ExpectEnums([0], 1)))
-  )
+  t.deepEqual(_0.decode(['', 1]).error, AtIndex(1, Optional(ExpectExact(0, 1))))
 })
 
 test('Decode.oneOf(Decode.exact())', t => {
@@ -122,9 +110,9 @@ test('Decode.oneOf(Decode.exact())', t => {
   t.deepEqual(
     _0.decode('chr').error,
     OneOf([
-      ExpectEnums(['usd'], 'chr'),
-      ExpectEnums(['rub'], 'chr'),
-      ExpectEnums(['eur'], 'chr')
+      ExpectExact('usd', 'chr'),
+      ExpectExact('rub', 'chr'),
+      ExpectExact('eur', 'chr')
     ])
   )
 

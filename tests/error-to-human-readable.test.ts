@@ -19,7 +19,7 @@ import {
   ExpectFloat,
   ExpectObject,
   ExpectArray,
-  ExpectEnums
+  ExpectExact
 } from './error'
 
 test('INVALID_JSON', t => {
@@ -139,6 +139,32 @@ Expecting a STRING but actual value is
         Expecting an INTEGER but actual value is
 
             false`
+  )
+
+  const _8 = OneOf([
+    ExpectExact('USD', 'str'),
+    ExpectExact('RUB', 'str'),
+    ExpectExact('EUR', 'str')
+  ])
+
+  t.is(
+    errorToHumanReadable(_8),
+    `All possibilities of oneOf failed in the following 3 ways:
+
+    (1) Problem with the given value
+    Expecting an EXACT value "USD" but actual value is
+
+        "str"
+
+    (2) Problem with the given value
+    Expecting an EXACT value "RUB" but actual value is
+
+        "str"
+
+    (3) Problem with the given value
+    Expecting an EXACT value "EUR" but actual value is
+
+        "str"`
   )
 })
 
@@ -845,23 +871,23 @@ Expecting an ARRAY but actual value is
   )
 })
 
-test('EXPECT_ENUMS', t => {
-  const _0 = ExpectEnums(['str', false, 123, null], undefined)
+test('EXPECT_EXACT', t => {
+  const _0 = ExpectExact('str', undefined)
   t.is(
     errorToHumanReadable(_0),
     `Problem with the given value
-Expecting ENUMS "str"|false|123|null but actual value is
+Expecting an EXACT value "str" but actual value is
 
     undefined`
   )
 
-  const _1 = ExpectEnums(['str', false, 123, null], {
+  const _1 = ExpectExact(false, {
     foo: [{ bar: 123 }]
   })
   t.is(
     errorToHumanReadable(_1, { indent: 2 }),
     `Problem with the given value
-Expecting ENUMS "str"|false|123|null but actual value is
+Expecting an EXACT value false but actual value is
 
   {
     "foo": [
@@ -876,7 +902,7 @@ Expecting ENUMS "str"|false|123|null but actual value is
   t.is(
     errorToHumanReadable(_2),
     `Problem with the given value
-Expecting OPTIONAL ENUMS "str"|false|123|null but actual value is
+Expecting an OPTIONAL EXACT value false but actual value is
 
     {
         "foo": [
@@ -891,7 +917,7 @@ Expecting OPTIONAL ENUMS "str"|false|123|null but actual value is
   t.is(
     errorToHumanReadable(_3),
     `Problem with a value at _.bar
-Expecting ENUMS "str"|false|123|null but actual value is
+Expecting an EXACT value false but actual value is
 
     {
         "foo": [
@@ -906,65 +932,7 @@ Expecting ENUMS "str"|false|123|null but actual value is
   t.is(
     errorToHumanReadable(_4),
     `Problem with a value at _[83]
-Expecting ENUMS "str"|false|123|null but actual value is
-
-    {
-        "foo": [
-            {
-                "bar": 123
-            }
-        ]
-    }`
-  )
-
-  const _5 = ExpectEnums([], {
-    foo: [{ bar: 123 }]
-  })
-  t.is(
-    errorToHumanReadable(_5, { indent: 2 }),
-    `Ran into enums with no possibilities
-
-  {
-    "foo": [
-      {
-        "bar": 123
-      }
-    ]
-  }`
-  )
-
-  const _6 = Optional(_5)
-  t.is(
-    errorToHumanReadable(_6),
-    `Ran into enums with no possibilities
-
-    {
-        "foo": [
-            {
-                "bar": 123
-            }
-        ]
-    }`
-  )
-
-  const _7 = InField('bar', _5)
-  t.is(
-    errorToHumanReadable(_7),
-    `Ran into enums with no possibilities at _.bar
-
-    {
-        "foo": [
-            {
-                "bar": 123
-            }
-        ]
-    }`
-  )
-
-  const _8 = AtIndex(83, _5)
-  t.is(
-    errorToHumanReadable(_8),
-    `Ran into enums with no possibilities at _[83]
+Expecting an EXACT value false but actual value is
 
     {
         "foo": [

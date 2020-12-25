@@ -47,8 +47,8 @@ export type DecodeError =
   | { type: 'EXPECT_OBJECT'; source: unknown }
   | { type: 'EXPECT_ARRAY'; source: unknown }
   | {
-      type: 'EXPECT_ENUMS'
-      variants: Array<string | number | boolean | null>
+      type: 'EXPECT_EXACT'
+      value: string | number | boolean | null
       source: unknown
     }
 
@@ -108,10 +108,10 @@ const FailureError = (message: string, source: unknown): DecodeError => ({
   source
 })
 
-const ExpectEnumsError = (
-  variants: Array<string | number | boolean | null>,
+const ExpectExactError = (
+  value: string | number | boolean | null,
   source: unknown
-): DecodeError => ({ type: 'EXPECT_ENUMS', variants, source })
+): DecodeError => ({ type: 'EXPECT_EXACT', value, source })
 
 const ExpectStringError = (source: unknown): DecodeError => ({
   type: 'EXPECT_STRING',
@@ -262,7 +262,7 @@ class ExactDecoder<T> extends DecoderImpl<T> {
       return Right(this.value)
     }
 
-    return Left(ExpectEnumsError([this.expect], input))
+    return Left(ExpectExactError(this.expect, input))
   }
 }
 
@@ -446,29 +446,6 @@ class OneOfDecoder<T> extends DecoderImpl<T> {
   }
 }
 
-class EnumsDecoder<T> extends DecoderImpl<T> {
-  public constructor(
-    private readonly variants: Array<[string | number | boolean | null, T]>
-  ) {
-    super()
-  }
-
-  protected run(input: unknown): DecodeResult<DecodeError, T> {
-    for (const [variant, value] of this.variants) {
-      if (variant === input) {
-        return Right(value)
-      }
-    }
-
-    return Left(
-      ExpectEnumsError(
-        this.variants.map(([variant]) => variant),
-        input
-      )
-    )
-  }
-}
-
 class RequiredFieldDecoder<T> extends DecoderImpl<T> {
   public constructor(
     private readonly name: string,
@@ -569,9 +546,6 @@ export interface OptionalDecoder {
   ): Decoder<null | Array<[K, T]>>
 
   oneOf<T>(options: Array<Decoder<T>>): Decoder<null | T>
-  enums<T>(
-    variants: Array<[string | number | boolean | null, T]>
-  ): Decoder<null | T>
 
   field(name: string): OptionalDecodePath
   index(position: number): OptionalDecodePath
@@ -644,12 +618,6 @@ class Optional implements OptionalDecoder {
     return this.of(oneOf(options))
   }
 
-  public enums<T>(
-    variants: Array<[string | number | boolean | null, T]>
-  ): Decoder<null | T> {
-    return this.of(enums(variants))
-  }
-
   public field(name: string): OptionalDecodePath {
     return new RequiredPath(
       <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
@@ -695,7 +663,6 @@ export interface RequiredDecodePath {
   ): Decoder<Array<[K, T]>>
 
   oneOf<T>(options: Array<Decoder<T>>): Decoder<T>
-  enums<T>(variants: Array<[string | number | boolean | null, T]>): Decoder<T>
 
   field(name: string): RequiredDecodePath
   index(position: number): RequiredDecodePath
@@ -773,12 +740,6 @@ class RequiredPath implements RequiredDecodePath {
 
   public oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
     return this.of(oneOf(options))
-  }
-
-  public enums<T>(
-    variants: Array<[string | number | boolean | null, T]>
-  ): Decoder<T> {
-    return this.of(enums(variants))
   }
 
   public field(name: string): RequiredDecodePath {
@@ -888,12 +849,6 @@ function oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
   return new OneOfDecoder(options)
 }
 
-function enums<T>(
-  variants: Array<[string | number | boolean | null, T]>
-): Decoder<T> {
-  return new EnumsDecoder(variants)
-}
-
 function field(name: string): RequiredDecodePath {
   return new RequiredPath(
     <T>(decoder: Decoder<T>): Decoder<T> =>
@@ -931,7 +886,6 @@ export default {
   keyValue,
 
   oneOf,
-  enums,
 
   field,
   index,

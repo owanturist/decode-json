@@ -48,10 +48,10 @@ export const Failure = (message: string, source: unknown): DecodeError => ({
   source
 })
 
-export const ExpectEnums = (
-  variants: Array<string | number | boolean | null>,
+export const ExpectExact = (
+  value: string | number | boolean | null,
   source: unknown
-): DecodeError => ({ type: 'EXPECT_ENUMS', variants, source })
+): DecodeError => ({ type: 'EXPECT_EXACT', value, source })
 
 export const ExpectString = (source: unknown): DecodeError => ({
   type: 'EXPECT_STRING',

@@ -140,42 +140,17 @@ const endValueToHumanReadable = (
   ].join('')
 }
 
-const enumsToHumanReadable = (
-  enums: Array<string | number | boolean | null>,
+const exactToHumanReadable = (
+  value: string | number | boolean | null,
   source: unknown,
   optional: boolean,
   indent: number,
   context: Array<string>
 ): string => {
-  if (enums.length === 0) {
-    return [
-      'Ran into enums with no possibilities',
-      context.length === 0 ? '' : ` at ${path(context)}`,
-      '\n\n',
-      stringifyJSON(indent, source)
-    ].join('')
-  }
-
-  if (enums.length === 1) {
-    return [
-      problemWithValue(context),
-      '\n',
-      'Expecting an EXACT value ',
-      JSON.stringify(enums[0]),
-      ' but actual value is',
-      '\n\n',
-      stringifyJSON(indent, source)
-    ].join('')
-  }
-
   return [
     problemWithValue(context),
     '\n',
-    expectingValue(
-      '',
-      'ENUMS ' + enums.map(value => JSON.stringify(value)).join('|'),
-      optional
-    ),
+    expectingValue('an ', `EXACT value ${JSON.stringify(value)}`, optional),
     '\n\n',
     stringifyJSON(indent, source)
   ].join('')
@@ -318,9 +293,9 @@ const toHumanReadable = (
       )
     }
 
-    case 'EXPECT_ENUMS': {
-      return enumsToHumanReadable(
-        error.variants,
+    case 'EXPECT_EXACT': {
+      return exactToHumanReadable(
+        error.value,
         error.source,
         optional,
         indent,
