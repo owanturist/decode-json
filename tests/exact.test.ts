@@ -3,7 +3,14 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { Optional, ExpectExact, InField, AtIndex, OneOf } from './error'
+import {
+  Optional,
+  ExpectExact,
+  InField,
+  AtIndex,
+  OneOf,
+  ExpectString
+} from './error'
 
 interface Currency {
   toCode(): string
@@ -125,4 +132,40 @@ test('Decode.oneOf(Decode.exact())', t => {
   t.is(_1.decode(1).value, 1)
   t.is(_1.decode('str').value, 'str')
   t.is(_1.decode(false).value, false)
+})
+
+type Action =
+  | { type: 'Input'; value: string }
+  | { type: 'Check'; id: number; checked: boolean }
+
+test('Real world example', t => {
+  const actionDecoder = Decode.oneOf<Action>([
+    Decode.shape({
+      type: Decode.index(0).exact('Input'),
+      value: Decode.index(1).string
+    }),
+
+    Decode.shape({
+      type: Decode.index(0).exact('Check'),
+      id: Decode.index(1).int,
+      checked: Decode.index(2).boolean
+    })
+  ])
+
+  t.deepEqual(actionDecoder.decode(['Input', 'name']).value, {
+    type: 'Input',
+    value: 'name'
+  })
+  t.deepEqual(actionDecoder.decode(['Check', 213, false]).value, {
+    type: 'Check',
+    id: 213,
+    checked: false
+  })
+  t.deepEqual(
+    actionDecoder.decode(['Input', 213, false]).error,
+    OneOf([
+      AtIndex(1, ExpectString(213)),
+      AtIndex(0, ExpectExact('Check', 'Input'))
+    ])
+  )
 })
