@@ -822,6 +822,88 @@ function shape<T extends Record<string, unknown>>(
   return new ShapeDecoder(schema)
 }
 
+export type TupleSchema<T extends Array<unknown>> = T extends [
+  infer A,
+  ...infer R
+]
+  ? [Decoder<A>, ...TupleSchema<R>]
+  : []
+
+function tuple<T1, T2>(schema: [Decoder<T1>, Decoder<T2>]): Decoder<[T1, T2]>
+function tuple<T1, T2>(_1: Decoder<T1>, _2: Decoder<T2>): Decoder<[T1, T2]>
+function tuple<T1, T2, T3>(
+  schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>]
+): Decoder<[T1, T2, T3]>
+function tuple<T1, T2, T3>(
+  _1: Decoder<T1>,
+  _2: Decoder<T2>,
+  _3: Decoder<T3>
+): Decoder<[T1, T2, T3]>
+function tuple<T1, T2, T3, T4>(
+  schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>, Decoder<T4>]
+): Decoder<[T1, T2, T3, T4]>
+function tuple<T1, T2, T3, T4>(
+  _1: Decoder<T1>,
+  _2: Decoder<T2>,
+  _3: Decoder<T3>,
+  _4: Decoder<T4>
+): Decoder<[T1, T2, T3, T4]>
+function tuple<T1, T2, T3, T4, T5>(
+  schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>, Decoder<T4>, Decoder<T5>]
+): Decoder<[T1, T2, T3, T4, T5]>
+function tuple<T1, T2, T3, T4, T5>(
+  _1: Decoder<T1>,
+  _2: Decoder<T2>,
+  _3: Decoder<T3>,
+  _4: Decoder<T4>,
+  _5: Decoder<T5>
+): Decoder<[T1, T2, T3, T4, T5]>
+function tuple<T1, T2, T3, T4, T5, T6>(
+  schema: [
+    Decoder<T1>,
+    Decoder<T2>,
+    Decoder<T3>,
+    Decoder<T4>,
+    Decoder<T5>,
+    Decoder<T6>
+  ]
+): Decoder<[T1, T2, T3, T4, T5, T6]>
+function tuple<T1, T2, T3, T4, T5, T6>(
+  _1: Decoder<T1>,
+  _2: Decoder<T2>,
+  _3: Decoder<T3>,
+  _4: Decoder<T4>,
+  _5: Decoder<T5>,
+  _6: Decoder<T6>
+): Decoder<[T1, T2, T3, T4, T5, T6]>
+function tuple<T extends Array<unknown>>(schema: TupleSchema<T>): Decoder<T>
+function tuple<T extends Array<unknown>>(...schema: TupleSchema<T>): Decoder<T>
+function tuple<T extends Array<unknown>>(
+  ...schema: [Array<Decoder<unknown>>] | Array<Decoder<unknown>>
+): Decoder<T> {
+  const decoders =
+    schema.length === 1 && isArray(schema[0])
+      ? schema[0]
+      : (schema as Array<Decoder<unknown>>)
+
+  const obj: Record<number, Decoder<unknown>> = {}
+  const N = decoders.length
+
+  for (let i = 0; i < N; i++) {
+    obj[i] = index(i).of(decoders[i])
+  }
+
+  return shape(obj).map(rec => {
+    const arr = new Array(N) as T
+
+    for (let i = 0; i < N; i++) {
+      arr[i] = rec[i]
+    }
+
+    return arr
+  })
+}
+
 function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
   return new ListDecoder(itemDecoder)
 }
@@ -882,6 +964,7 @@ export default {
 
   record,
   shape,
+  tuple,
   list,
   keyValue,
 
