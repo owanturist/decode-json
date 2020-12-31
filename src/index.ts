@@ -762,8 +762,6 @@ class DecodePath implements RequiredDecodePath {
 // -- P U B L I C   A P I --
 // -------------------------
 
-type NullDecoder<X extends boolean, T> = Decoder<X extends true ? T : null | T>
-
 const optional: OptionalDecoder = new Optional(decoder => decoder)
 
 const unknown: Decoder<unknown> = new UnknownDecoder()
@@ -793,8 +791,12 @@ function succeed<T>(value: T): Decoder<T> {
 // E X A C T
 
 interface MakeExact<X extends boolean> {
-  <T extends string | number | boolean | null>(value: T): NullDecoder<X, T>
-  <T>(expect: string | number | boolean | null, value: T): NullDecoder<X, T>
+  <T extends string | number | boolean | null>(value: T): Decoder<
+    X extends true ? T : null | T
+  >
+  <T>(expect: string | number | boolean | null, value: T): Decoder<
+    X extends true ? T : null | T
+  >
 }
 
 const exactHelp = <T>(
@@ -819,7 +821,7 @@ const exact: MakeExact<true> = <T>(
 
 type MakeRecord<X extends boolean> = <T>(
   itemDecoder: Decoder<T>
-) => NullDecoder<X, Record<string, T>>
+) => Decoder<X extends true ? Record<string, T> : null | Record<string, T>>
 
 const record: MakeRecord<true> = itemDecoder => new RecordDecoder(itemDecoder)
 
@@ -827,7 +829,7 @@ const record: MakeRecord<true> = itemDecoder => new RecordDecoder(itemDecoder)
 
 type MakeShape<X extends boolean> = <T extends Record<string, unknown>>(
   schema: { [K in keyof T]: Decoder<T[K]> }
-) => NullDecoder<X, T>
+) => Decoder<X extends true ? T : null | T>
 
 const shape: MakeShape<true> = schema => new ShapeDecoder(schema)
 
@@ -837,42 +839,48 @@ type TupleSchema<X extends boolean, T extends Array<unknown>> = T extends [
   infer A,
   ...infer R
 ]
-  ? [NullDecoder<X, A>, ...TupleSchema<X, R>]
+  ? [Decoder<X extends true ? A : null | A>, ...TupleSchema<X, R>]
   : []
 
 interface MakeTuple<X extends boolean> {
-  <T1, T2>(schema: [Decoder<T1>, Decoder<T2>]): NullDecoder<X, [T1, T2]>
-  <T1, T2>(_1: Decoder<T1>, _2: Decoder<T2>): NullDecoder<X, [T1, T2]>
-
-  <T1, T2, T3>(schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>]): NullDecoder<
-    X,
-    [T1, T2, T3]
+  <T1, T2>(schema: [Decoder<T1>, Decoder<T2>]): Decoder<
+    X extends true ? [T1, T2] : null | [T1, T2]
   >
-  <T1, T2, T3>(_1: Decoder<T1>, _2: Decoder<T2>, _3: Decoder<T3>): NullDecoder<
-    X,
-    [T1, T2, T3]
+  <T1, T2>(_1: Decoder<T1>, _2: Decoder<T2>): Decoder<
+    X extends true ? [T1, T2] : null | [T1, T2]
+  >
+
+  <T1, T2, T3>(schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>]): Decoder<
+    X extends true ? [T1, T2, T3] : null | [T1, T2, T3]
+  >
+  <T1, T2, T3>(_1: Decoder<T1>, _2: Decoder<T2>, _3: Decoder<T3>): Decoder<
+    X extends true ? [T1, T2, T3] : null | [T1, T2, T3]
   >
 
   <T1, T2, T3, T4>(
     schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>, Decoder<T4>]
-  ): NullDecoder<X, [T1, T2, T3, T4]>
+  ): Decoder<X extends true ? [T1, T2, T3, T4] : null | [T1, T2, T3, T4]>
   <T1, T2, T3, T4>(
     _1: Decoder<T1>,
     _2: Decoder<T2>,
     _3: Decoder<T3>,
     _4: Decoder<T4>
-  ): NullDecoder<X, [T1, T2, T3, T4]>
+  ): Decoder<X extends true ? [T1, T2, T3, T4] : null | [T1, T2, T3, T4]>
 
   <T1, T2, T3, T4, T5>(
     schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>, Decoder<T4>, Decoder<T5>]
-  ): NullDecoder<X, [T1, T2, T3, T4, T5]>
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5] : null | [T1, T2, T3, T4, T5]
+  >
   <T1, T2, T3, T4, T5>(
     _1: Decoder<T1>,
     _2: Decoder<T2>,
     _3: Decoder<T3>,
     _4: Decoder<T4>,
     _5: Decoder<T5>
-  ): NullDecoder<X, [T1, T2, T3, T4, T5]>
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5] : null | [T1, T2, T3, T4, T5]
+  >
 
   <T1, T2, T3, T4, T5, T6>(
     schema: [
@@ -883,7 +891,9 @@ interface MakeTuple<X extends boolean> {
       Decoder<T5>,
       Decoder<T6>
     ]
-  ): NullDecoder<X, [T1, T2, T3, T4, T5, T6]>
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5, T6] : null | [T1, T2, T3, T4, T5, T6]
+  >
   <T1, T2, T3, T4, T5, T6>(
     _1: Decoder<T1>,
     _2: Decoder<T2>,
@@ -891,10 +901,16 @@ interface MakeTuple<X extends boolean> {
     _4: Decoder<T4>,
     _5: Decoder<T5>,
     _6: Decoder<T6>
-  ): NullDecoder<X, [T1, T2, T3, T4, T5, T6]>
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5, T6] : null | [T1, T2, T3, T4, T5, T6]
+  >
 
-  <T extends Array<unknown>>(schema: TupleSchema<X, T>): NullDecoder<X, T>
-  <T extends Array<unknown>>(...schema: TupleSchema<X, T>): NullDecoder<X, T>
+  <T extends Array<unknown>>(schema: TupleSchema<X, T>): Decoder<
+    X extends true ? T : null | T
+  >
+  <T extends Array<unknown>>(...schema: TupleSchema<X, T>): Decoder<
+    X extends true ? T : null | T
+  >
 }
 
 const tupleHelp = <T extends Array<unknown>>(
@@ -931,18 +947,20 @@ const tuple: MakeTuple<true> = <T extends Array<unknown>>(
 
 type MakeList<X extends boolean> = <T>(
   itemDecoder: Decoder<T>
-) => NullDecoder<X, Array<T>>
+) => Decoder<X extends true ? Array<T> : null | Array<T>>
 
 const list: MakeList<true> = itemDecoder => new ListDecoder(itemDecoder)
 
 // K E Y   V A L U E
 
 interface MakeKeyValue<X extends boolean> {
-  <T>(itemDecoder: Decoder<T>): NullDecoder<X, Array<[string, T]>>
+  <T>(itemDecoder: Decoder<T>): Decoder<
+    X extends true ? Array<[string, T]> : null | Array<[string, T]>
+  >
   <K, T>(
     convertKey: (key: string) => DecodeResult<string, K>,
     itemDecoder: Decoder<T>
-  ): NullDecoder<X, Array<[K, T]>>
+  ): Decoder<X extends true ? Array<[K, T]> : null | Array<[K, T]>>
 }
 
 const keyValueHelp = <K, T>(
@@ -963,7 +981,7 @@ const keyValue: MakeKeyValue<true> = <K, T>(
 
 type MakeOneOf<X extends boolean> = <T>(
   options: Array<Decoder<T>>
-) => NullDecoder<X, T>
+) => Decoder<X extends true ? T : null | T>
 
 const oneOf: MakeOneOf<true> = options => new OneOfDecoder(options)
 
@@ -971,7 +989,7 @@ const oneOf: MakeOneOf<true> = options => new OneOfDecoder(options)
 
 type MakeLazy<X extends boolean> = <T>(
   lazyDecoder: () => Decoder<T>
-) => NullDecoder<X, T>
+) => Decoder<X extends true ? T : null | T>
 
 const lazy: MakeLazy<true> = lazyDecoder => succeed(null).chain(lazyDecoder)
 
