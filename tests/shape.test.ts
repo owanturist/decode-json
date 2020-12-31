@@ -87,7 +87,7 @@ test('Decode.field().shape()', t => {
   )
 })
 
-test('Decode.index().list()', t => {
+test('Decode.index().shape()', t => {
   // Decoder<{
   //    _1: string
   // }>
