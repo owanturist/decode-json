@@ -530,22 +530,16 @@ export interface OptionalDecoder {
   int: Decoder<null | number>
   float: Decoder<null | number>
 
-  exact<T extends string | number | boolean>(value: T): Decoder<null | T>
-  exact<T>(expect: string | number | boolean, value: T): Decoder<null | T>
+  list: MakeList<false>
+  record: MakeRecord<false>
+  keyValue: MakeKeyValue<false>
+
+  exact: MakeExact<false>
+  oneOf: MakeOneOf<false>
+
+  lazy: MakeLazy<false>
 
   of<T>(decoder: Decoder<T>): Decoder<null | T>
-  lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<null | T>
-
-  list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>>
-  record<T>(itemDecoder: Decoder<T>): Decoder<null | Record<string, T>>
-
-  keyValue<T>(itemDecoder: Decoder<T>): Decoder<null | Array<[string, T]>>
-  keyValue<K, T>(
-    convertKey: (key: string) => DecodeResult<string, K>,
-    itemDecoder: Decoder<T>
-  ): Decoder<null | Array<[K, T]>>
-
-  oneOf<T>(options: Array<Decoder<T>>): Decoder<null | T>
 
   field(name: string): OptionalDecodePath
   index(position: number): OptionalDecodePath
@@ -556,9 +550,8 @@ export interface OptionalDecodePath extends OptionalDecoder {
 
   unknown: Decoder<unknown>
 
-  shape<T extends Record<string, unknown>>(
-    object: { [K in keyof T]: Decoder<T[K]> }
-  ): Decoder<null | T>
+  tuple: MakeTuple<false>
+  shape: MakeShape<false>
 }
 
 class Optional implements OptionalDecoder {
@@ -585,7 +578,9 @@ class Optional implements OptionalDecoder {
   }
 
   public exact<T>(
-    ...args: [string | number | boolean] | [string | number | boolean, T]
+    ...args:
+      | [string | number | boolean | null]
+      | [string | number | boolean | null, T]
   ): Decoder<string | number | boolean | null | T> {
     return this.of(exactHelp(args))
   }
@@ -619,19 +614,23 @@ class Optional implements OptionalDecoder {
   }
 
   public field(name: string): OptionalDecodePath {
-    return new RequiredPath(
+    const fieldPath = new DecodePath(
       <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
         return this.of(new OptionalFieldDecoder(name, decoder))
       }
     )
+
+    return (fieldPath as unknown) as OptionalDecodePath
   }
 
   public index(position: number): OptionalDecodePath {
-    return new RequiredPath(
+    const indexPath = new DecodePath(
       <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
         return this.of(new OptionalIndexDecoder(position, decoder))
       }
     )
+
+    return (indexPath as unknown) as OptionalDecodePath
   }
 }
 
@@ -644,25 +643,19 @@ export interface RequiredDecodePath {
   int: Decoder<number>
   float: Decoder<number>
 
-  exact<T extends string | number | boolean | null>(value: T): Decoder<T>
-  exact<T>(expect: string | number | boolean | null, value: T): Decoder<T>
+  list: MakeList<true>
+  record: MakeRecord<true>
+  keyValue: MakeKeyValue<true>
+
+  tuple: MakeTuple<true>
+  shape: MakeShape<true>
+
+  exact: MakeExact<true>
+  oneOf: MakeOneOf<true>
+
+  lazy: MakeLazy<true>
 
   of<T>(decoder: Decoder<T>): Decoder<T>
-  lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T>
-
-  list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>>
-  record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>>
-  shape<T extends Record<string, unknown>>(
-    schema: { [K in keyof T]: Decoder<T[K]> }
-  ): Decoder<T>
-
-  keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
-  keyValue<K, T>(
-    convertKey: (key: string) => DecodeResult<string, K>,
-    itemDecoder: Decoder<T>
-  ): Decoder<Array<[K, T]>>
-
-  oneOf<T>(options: Array<Decoder<T>>): Decoder<T>
 
   field(name: string): RequiredDecodePath
   index(position: number): RequiredDecodePath
@@ -673,7 +666,7 @@ interface CreateDecoder {
   <T>(decoder: Decoder<null | T>): Decoder<null | T>
 }
 
-class RequiredPath implements RequiredDecodePath {
+class DecodePath implements RequiredDecodePath {
   public constructor(protected readonly createDecoder: CreateDecoder) {}
 
   public get optional(): OptionalDecoder {
@@ -720,6 +713,12 @@ class RequiredPath implements RequiredDecodePath {
     return this.of(list(itemDecoder))
   }
 
+  public tuple<T extends Array<unknown>>(
+    ...schema: [Array<Decoder<unknown>>] | Array<Decoder<unknown>>
+  ): Decoder<T> {
+    return this.of(tupleHelp(schema))
+  }
+
   public record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
     return this.of(record(itemDecoder))
   }
@@ -743,7 +742,7 @@ class RequiredPath implements RequiredDecodePath {
   }
 
   public field(name: string): RequiredDecodePath {
-    return new RequiredPath(
+    return new DecodePath(
       <T>(decoder: Decoder<T>): Decoder<T> => {
         return this.of(new RequiredFieldDecoder(name, decoder))
       }
@@ -751,7 +750,7 @@ class RequiredPath implements RequiredDecodePath {
   }
 
   public index(position: number): RequiredDecodePath {
-    return new RequiredPath(
+    return new DecodePath(
       <T>(decoder: Decoder<T>): Decoder<T> => {
         return this.of(new RequiredIndexDecoder(position, decoder))
       }
@@ -759,7 +758,9 @@ class RequiredPath implements RequiredDecodePath {
   }
 }
 
-// E X P O R T
+// -------------------------
+// -- P U B L I C   A P I --
+// -------------------------
 
 const optional: OptionalDecoder = new Optional(decoder => decoder)
 
@@ -779,6 +780,25 @@ const int: Decoder<number> = new PrimitiveDecoder(ExpectIntError, isInteger)
 
 const float: Decoder<number> = new PrimitiveDecoder(ExpectFloatError, isNumber)
 
+function fail(message: string): Decoder<never> {
+  return new FailDecoder(message)
+}
+
+function succeed<T>(value: T): Decoder<T> {
+  return new SucceedDecoder(value)
+}
+
+// E X A C T
+
+interface MakeExact<X extends boolean> {
+  <T extends string | number | boolean | null>(value: T): Decoder<
+    X extends true ? T : null | T
+  >
+  <T>(expect: string | number | boolean | null, value: T): Decoder<
+    X extends true ? T : null | T
+  >
+}
+
 const exactHelp = <T>(
   args:
     | [string | number | boolean | null]
@@ -791,39 +811,156 @@ const exactHelp = <T>(
   return new ExactDecoder(args[0], args[1])
 }
 
-function exact<T extends string | number | boolean | null>(value: T): Decoder<T>
-function exact<T>(
-  expect: string | number | boolean | null,
-  value: T
-): Decoder<T>
-function exact<T>(
+const exact: MakeExact<true> = <T>(
   ...args:
     | [string | number | boolean | null]
     | [string | number | boolean | null, T]
-): Decoder<string | number | boolean | null | T> {
-  return exactHelp(args)
-}
+) => exactHelp(args)
 
-function fail(message: string): Decoder<never> {
-  return new FailDecoder(message)
-}
+// R E C O R D
 
-function succeed<T>(value: T): Decoder<T> {
-  return new SucceedDecoder(value)
-}
+type MakeRecord<X extends boolean> = <T>(
+  itemDecoder: Decoder<T>
+) => Decoder<X extends true ? Record<string, T> : null | Record<string, T>>
 
-function record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
-  return new RecordDecoder(itemDecoder)
-}
+const record: MakeRecord<true> = itemDecoder => new RecordDecoder(itemDecoder)
 
-function shape<T extends Record<string, unknown>>(
+// S H A P E
+
+type MakeShape<X extends boolean> = <T extends Record<string, unknown>>(
   schema: { [K in keyof T]: Decoder<T[K]> }
-): Decoder<T> {
-  return new ShapeDecoder(schema)
+) => Decoder<X extends true ? T : null | T>
+
+const shape: MakeShape<true> = schema => new ShapeDecoder(schema)
+
+// T U P L E
+
+type TupleSchema<X extends boolean, T extends Array<unknown>> = T extends [
+  infer A,
+  ...infer R
+]
+  ? [Decoder<X extends true ? A : null | A>, ...TupleSchema<X, R>]
+  : []
+
+interface MakeTuple<X extends boolean> {
+  <T1, T2>(schema: [Decoder<T1>, Decoder<T2>]): Decoder<
+    X extends true ? [T1, T2] : null | [T1, T2]
+  >
+  <T1, T2>(_1: Decoder<T1>, _2: Decoder<T2>): Decoder<
+    X extends true ? [T1, T2] : null | [T1, T2]
+  >
+
+  <T1, T2, T3>(schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>]): Decoder<
+    X extends true ? [T1, T2, T3] : null | [T1, T2, T3]
+  >
+  <T1, T2, T3>(_1: Decoder<T1>, _2: Decoder<T2>, _3: Decoder<T3>): Decoder<
+    X extends true ? [T1, T2, T3] : null | [T1, T2, T3]
+  >
+
+  <T1, T2, T3, T4>(
+    schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>, Decoder<T4>]
+  ): Decoder<X extends true ? [T1, T2, T3, T4] : null | [T1, T2, T3, T4]>
+  <T1, T2, T3, T4>(
+    _1: Decoder<T1>,
+    _2: Decoder<T2>,
+    _3: Decoder<T3>,
+    _4: Decoder<T4>
+  ): Decoder<X extends true ? [T1, T2, T3, T4] : null | [T1, T2, T3, T4]>
+
+  <T1, T2, T3, T4, T5>(
+    schema: [Decoder<T1>, Decoder<T2>, Decoder<T3>, Decoder<T4>, Decoder<T5>]
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5] : null | [T1, T2, T3, T4, T5]
+  >
+  <T1, T2, T3, T4, T5>(
+    _1: Decoder<T1>,
+    _2: Decoder<T2>,
+    _3: Decoder<T3>,
+    _4: Decoder<T4>,
+    _5: Decoder<T5>
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5] : null | [T1, T2, T3, T4, T5]
+  >
+
+  <T1, T2, T3, T4, T5, T6>(
+    schema: [
+      Decoder<T1>,
+      Decoder<T2>,
+      Decoder<T3>,
+      Decoder<T4>,
+      Decoder<T5>,
+      Decoder<T6>
+    ]
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5, T6] : null | [T1, T2, T3, T4, T5, T6]
+  >
+  <T1, T2, T3, T4, T5, T6>(
+    _1: Decoder<T1>,
+    _2: Decoder<T2>,
+    _3: Decoder<T3>,
+    _4: Decoder<T4>,
+    _5: Decoder<T5>,
+    _6: Decoder<T6>
+  ): Decoder<
+    X extends true ? [T1, T2, T3, T4, T5, T6] : null | [T1, T2, T3, T4, T5, T6]
+  >
+
+  <T extends Array<unknown>>(schema: TupleSchema<X, T>): Decoder<
+    X extends true ? T : null | T
+  >
+  <T extends Array<unknown>>(...schema: TupleSchema<X, T>): Decoder<
+    X extends true ? T : null | T
+  >
 }
 
-function list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
-  return new ListDecoder(itemDecoder)
+const tupleHelp = <T extends Array<unknown>>(
+  schema: [Array<Decoder<unknown>>] | Array<Decoder<unknown>>
+): Decoder<T> => {
+  const decoders =
+    schema.length === 1 && isArray(schema[0])
+      ? schema[0]
+      : (schema as Array<Decoder<unknown>>)
+
+  const obj: Record<number, Decoder<unknown>> = {}
+  const N = decoders.length
+
+  for (let i = 0; i < N; i++) {
+    obj[i] = decoders[i]
+  }
+
+  return shape(obj).map(rec => {
+    const arr = new Array(N) as T
+
+    for (let i = 0; i < N; i++) {
+      arr[i] = rec[i]
+    }
+
+    return arr
+  })
+}
+
+const tuple: MakeTuple<true> = <T extends Array<unknown>>(
+  ...schema: [Array<Decoder<unknown>>] | Array<Decoder<unknown>>
+): Decoder<T> => tupleHelp(schema)
+
+// L I S T
+
+type MakeList<X extends boolean> = <T>(
+  itemDecoder: Decoder<T>
+) => Decoder<X extends true ? Array<T> : null | Array<T>>
+
+const list: MakeList<true> = itemDecoder => new ListDecoder(itemDecoder)
+
+// K E Y   V A L U E
+
+interface MakeKeyValue<X extends boolean> {
+  <T>(itemDecoder: Decoder<T>): Decoder<
+    X extends true ? Array<[string, T]> : null | Array<[string, T]>
+  >
+  <K, T>(
+    convertKey: (key: string) => DecodeResult<string, K>,
+    itemDecoder: Decoder<T>
+  ): Decoder<X extends true ? Array<[K, T]> : null | Array<[K, T]>>
 }
 
 const keyValueHelp = <K, T>(
@@ -834,37 +971,44 @@ const keyValueHelp = <K, T>(
   return new KeyValueDecoder<K | string, T>(convertKey, itemDecoder)
 }
 
-function keyValue<T>(itemDecoder: Decoder<T>): Decoder<Array<[string, T]>>
-function keyValue<K, T>(
-  convertKey: (key: string) => DecodeResult<string, K>,
-  itemDecoder: Decoder<T>
-): Decoder<Array<[K, T]>>
-function keyValue<K, T>(
+const keyValue: MakeKeyValue<true> = <K, T>(
   ...args: [Decoder<T>] | [(key: string) => DecodeResult<string, K>, Decoder<T>]
-): Decoder<Array<[K | string, T]>> {
+) => {
   return keyValueHelp(args)
 }
 
-function oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
-  return new OneOfDecoder(options)
-}
+// O N E   O F
+
+type MakeOneOf<X extends boolean> = <T>(
+  options: Array<Decoder<T>>
+) => Decoder<X extends true ? T : null | T>
+
+const oneOf: MakeOneOf<true> = options => new OneOfDecoder(options)
+
+// L A Z Y
+
+type MakeLazy<X extends boolean> = <T>(
+  lazyDecoder: () => Decoder<T>
+) => Decoder<X extends true ? T : null | T>
+
+const lazy: MakeLazy<true> = lazyDecoder => succeed(null).chain(lazyDecoder)
+
+// F I E L D
 
 function field(name: string): RequiredDecodePath {
-  return new RequiredPath(
+  return new DecodePath(
     <T>(decoder: Decoder<T>): Decoder<T> =>
       new RequiredFieldDecoder(name, decoder)
   )
 }
 
+// I N D E X
+
 function index(position: number): RequiredDecodePath {
-  return new RequiredPath(
+  return new DecodePath(
     <T>(decoder: Decoder<T>): Decoder<T> =>
       new RequiredIndexDecoder(position, decoder)
   )
-}
-
-function lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T> {
-  return succeed(null).chain(lazyDecoder)
 }
 
 export default {
@@ -882,6 +1026,7 @@ export default {
 
   record,
   shape,
+  tuple,
   list,
   keyValue,
 
