@@ -1021,19 +1021,19 @@ export default {
   float,
   exact,
 
-  fail,
-  succeed,
-
   record,
-  shape,
-  tuple,
   list,
   keyValue,
+  shape,
+  tuple,
 
   oneOf,
 
   field,
   index,
+
+  fail,
+  succeed,
 
   lazy
 }
