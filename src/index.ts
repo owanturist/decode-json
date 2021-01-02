@@ -32,11 +32,11 @@ const hasOwnProperty = (
 // E R R O R
 
 export type DecodeError =
+  | { type: 'RUNTIME_EXCEPTION'; error: Error }
+  | { type: 'ONE_OF'; errors: Array<DecodeError> }
   | { type: 'OPTIONAL'; error: DecodeError }
   | { type: 'IN_FIELD'; name: string; error: DecodeError }
   | { type: 'AT_INDEX'; position: number; error: DecodeError }
-  | { type: 'ONE_OF'; errors: Array<DecodeError> }
-  | { type: 'RUNTIME_EXCEPTION'; error: Error }
   | { type: 'REQUIRED_FIELD'; name: string; source: Record<string, unknown> }
   | { type: 'REQUIRED_INDEX'; position: number; source: Array<unknown> }
   | { type: 'FAILURE'; message: string; source: unknown }
@@ -327,7 +327,7 @@ class KeyValueDecoder<K, T> extends DecoderImpl<Array<[K, T]>> {
         const keyResult = this.convertKey(key)
 
         if (keyResult.error != null) {
-          return Left(InFieldError(key, FailureError(keyResult.error, key)))
+          return Left(FailureError(keyResult.error, key))
         }
 
         const itemResult = this.itemDecoder.decode(input[key])
@@ -525,7 +525,7 @@ class OptionalIndexDecoder<T> extends RequiredIndexDecoder<null | T> {
   }
 }
 
-export interface OptionalDecoder {
+export interface DecodeOptional {
   string: Decoder<null | string>
   boolean: Decoder<null | boolean>
   int: Decoder<null | number>
@@ -539,7 +539,7 @@ export interface OptionalDecoder {
   index: MakeIndex<false>
 }
 
-class Optional implements OptionalDecoder {
+class Optional implements DecodeOptional {
   public constructor(
     private readonly createDecoder: <T>(
       decoder: Decoder<null | T>
@@ -596,7 +596,7 @@ class Optional implements OptionalDecoder {
 }
 
 interface DecodePath<X extends boolean> {
-  optional: OptionalDecoder
+  optional: DecodeOptional
 
   unknown: Decoder<unknown>
   string: Decoder<X extends true ? string : null | string>
@@ -637,7 +637,7 @@ class PathDecoder<X extends boolean> implements DecodePath<X> {
     return this.createDecoder(decoder)
   }
 
-  public get optional(): OptionalDecoder {
+  public get optional(): DecodeOptional {
     return new Optional(this.createDecoder)
   }
 
@@ -736,7 +736,7 @@ class PathDecoder<X extends boolean> implements DecodePath<X> {
 // -- P U B L I C   A P I --
 // -------------------------
 
-const optional: OptionalDecoder = new Optional(decoder => decoder)
+const optional: DecodeOptional = new Optional(decoder => decoder)
 
 const unknown: Decoder<unknown> = new UnknownDecoder()
 

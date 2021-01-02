@@ -1,8 +1,10 @@
 # JSON in TypeScript
 
+> The package you are about to use has been done under inspiration of [Elm lang](https://elm-lang.org/) and [elm/json](https://package.elm-lang.org/packages/elm/json/latest/) package particularly.
+
 Using TypeScript is a great way to prevent some bugs during compile time but nothing can save us from runtime exceptions. Today "height" field coming from the `GET /tallest-building` endpoint is a `number` and you call `.toFixed(2)` to format it but next day it becomes a preformatted `string` and the app crashes with `toFixed is not a function`. The same thing could happen when an application uses `localStorage` and somebody changes a format to keep credentials token or last opened product information - value exists so you assume that it is valid but runtime error will make you unhappy very soon. Sounds familiar, doesn't?
 
-As a little attempt to workaround the issue we can try to protect our programs from unexpected data to come. To do so we should be able to explain what data we expect and how it should be interpreted.
+As a little attempt to workaround the issue we can try to protect our programs from unexpected data to come. To do so we should be able to explain what data we expect and how it should be transformed so an application can use it.
 
 This package helps you to convert JSON or unknown values to TypeScript safe structures.
 
@@ -103,7 +105,7 @@ And the trick is that by using a decoder a developer assumes that decode result 
 
 ### `DecodeResult`
 
-This is what you always get as result of running both [`Decoder.decode`](#DecoderDecode) and [`Decoder.decodeJson`](#DecoderDecodeJson) methods. It can be either `{ value: T }` when a decoding has been successfully passed or `{ error: E }` when any of decode, parsee json or runtime error occurs.
+This is what you always get as result of running both [`Decoder.decode`](#DecoderDecode) and [`Decoder.decodeJson`](#DecoderDecodeJson) methods. It can be either `{ value: T }` when a decoding has been successfully passed or `{ error: E }` when any of decode, json parse or runtime error occur.
 
 ```ts
 import Decode, { Decoder, DecodeResult, DecodeError } from 'decode-json'
@@ -423,7 +425,7 @@ Decode.list(userDecoder).decode([
 //   position: 1,
 //   error: {
 //     type: 'REQUIRED_FIELD',
-//     name: 'username',
+//     name: 'user_name',
 //     source: {
 //       id: 1,
 //       name: 'boss'
@@ -512,13 +514,9 @@ activeUsers.decode({
   cny: 7912.08
 }).error
 // == {
-//   type: 'IN_FIELD',
-//   name: 'cny',
-//   error: {
-//     type: 'FAILURE',
-//     message: 'Unknown currency code cny'
-//     source: 'cny'
-//   }
+//   type: 'FAILURE',
+//   message: 'Unknown currency code "cny"'
+//   source: 'cny'
 // }
 ```
 
@@ -904,17 +902,17 @@ const pointDecoder = Decode.tuple(
   Decode.field('y').float
 )
 
-Decode.field('center').of(pointDecoder).decode([]).error
+Decode.field('center').of(pointDecoder).decode([1, 2, 3]).error
 // == {
 //   type: 'EXPECT_OBJECT',
-//   source: []
+//   source: [ 1, 2, 3 ]
 // }
 
-Decode.field('center').of(pointDecoder).decode({}).error
+Decode.field('center').of(pointDecoder).decode({ name: 'John' }).error
 // == {
 //   type: 'REQUIRED_FIELD',
 //   name: 'center',
-//   source: {}
+//   source: { name: 'John' }
 // }
 
 Decode.field('center')
@@ -969,9 +967,9 @@ Decode.index(0).int.decode([42]).value // == 42
 
 ### `Decode.optional`
 
-Creates `OptionalDecoder` instance.
+Creates `DecodeOptional` instance.
 
-#### `OptionalDecoder.string`
+#### `DecodeOptional.string`
 
 Behaves exactly as [`Decode.string`](#DecodeString) but decodes `null` and `undefined` as `null`:
 
@@ -988,7 +986,7 @@ Decode.optional.string.decode(undefined).value // == null
 Decode.optional.string.decode('hi').value // == 'hi'
 ```
 
-#### `OptionalDecoder.boolean`
+#### `DecodeOptional.boolean`
 
 Behaves exactly as [`Decode.boolean`](#DecodeBoolean) but decodes `null` and `undefined` as `null`:
 
@@ -1005,7 +1003,7 @@ Decode.optional.boolean.decode(undefined).value // == null
 Decode.optional.boolean.decode(true).value // == true
 ```
 
-#### `OptionalDecoder.int`
+#### `DecodeOptional.int`
 
 Behaves exactly as [`Decode.int`](#DecodeInt) but decodes `null` and `undefined` as `null`:
 
@@ -1022,7 +1020,7 @@ Decode.optional.int.decode(undefined).value // == null
 Decode.optional.int.decode(1234).value // == 1234
 ```
 
-#### `OptionalDecoder.float`
+#### `DecodeOptional.float`
 
 Behaves exactly as [`Decode.float`](#DecodeFloat) but decodes `null` and `undefined` as `null`:
 
@@ -1039,7 +1037,7 @@ Decode.optional.float.decode(undefined).value // == null
 Decode.optional.float.decode(12.3).value // == 12.3
 ```
 
-#### `OptionalDecoder.list`
+#### `DecodeOptional.list`
 
 Behaves exactly as [`Decode.list`](#DecodeList) but decodes `null` and `undefined` as `null`:
 
@@ -1082,7 +1080,7 @@ idsDecoder.decode(null).value // === null
 idsDecoder.decode([0, null, 2, 3]).value // === [ 0, null, 2, 3 ]
 ```
 
-#### `OptionalDecoder.record`
+#### `DecodeOptional.record`
 
 Behaves exactly as [`Decode.record`](#DecodeRecord) but decodes `null` and `undefined` as `null`:
 
@@ -1152,7 +1150,7 @@ blackListDecoder.decode({
 // }
 ```
 
-#### `OptionalDecoder.keyValue`
+#### `DecodeOptional.keyValue`
 
 Behaves exactly as [`Decode.keyValue`](#DecodeKeyValue) but decodes `null` and `undefined` as `null`:
 
@@ -1220,7 +1218,7 @@ blackListDecoder.decode({
 // ]
 ```
 
-#### `OptionalDecoder.field`
+#### `DecodeOptional.field`
 
 Creates an [`OptionalDecodePath`](#OptionalDecodePath) instance.
 
@@ -1230,7 +1228,7 @@ import Decode, { OptionalDecodePath } from 'decode-json'
 const nameFieldDecoder: OptionalDecodePath = Decode.optional.field('name')
 ```
 
-#### `OptionalDecoder.index`
+#### `DecodeOptional.index`
 
 Creates an [`OptionalDecodePath`](#OptionalDecodePath) instance.
 
@@ -1242,7 +1240,7 @@ const headDecoder: OptionalDecodePath = Decode.optional.index(0)
 
 ### `OptionalDecodePath`
 
-It provides an API to build decoders for some specific path described with [`OptionalDecoder.field`](#OptionalDecoderField) and [`OptionalDecoder.index`](#OptionalDecoderIndex):
+It provides an API to build decoders for some specific path described with [`DecodeOptional.field`](#DecodeOptionalField) and [`DecodeOptional.index`](#DecodeOptionalIndex):
 
 ```ts
 import Decode from 'decode-json'
@@ -1332,4 +1330,544 @@ Decode.optional.index(0).int.decode([null]).error
 // }
 
 Decode.optional.index(0).optional.int.decode([null]).value // == null
+```
+
+### `DecodeError`
+
+A set of errors describe what went wrong during decoding of unknown value with [`Decoder.decode`](#DecoderDecode). The error consist of plain JavaScript data types such as strings, numbers, objects and arrays so it can be stringified to JSON without any information losses. It might be helpful for sending to tracking tools as part of report or to display friendly message in UI with [`error-to-human-readable.ts`](/src/error-to-human-readable.ts). You can always build your own functions for error formatting.
+
+#### `EXPECT_STRING`
+
+Signature:
+
+```ts
+// not exported
+type ExpectStringError = {
+  type: 'EXPECT_STRING'
+  source: unknown
+}
+```
+
+Occurs when `source` fails a check to be a string:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.string.decode(123).error
+// == {
+//   type: 'EXPECT_STRING',
+//   source: 123
+// }
+```
+
+#### `EXPECT_BOOLEAN`
+
+Signature:
+
+```ts
+// not exported
+type ExpectBooleanError = {
+  type: 'EXPECT_BOOLEAN'
+  source: unknown
+}
+```
+
+Occurs when `source` fails a check to be a boolean value:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.string.decode('I am a string').error
+// == {
+//   type: 'EXPECT_BOOLEAN',
+//   source: 'I am a string'
+// }
+```
+
+#### `EXPECT_FLOAT`
+
+Signature:
+
+```ts
+// not exported
+type ExpectFloatError = {
+  type: 'EXPECT_FLOAT'
+  source: unknown
+}
+```
+
+Occurs when `source` fails a check to be a float number:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.int.decode(false).error
+// == {
+//   type: 'EXPECT_FLOAT',
+//   source: false
+// }
+```
+
+#### `EXPECT_INT`
+
+Signature:
+
+```ts
+// not exported
+type ExpectIntError = {
+  type: 'EXPECT_INT'
+  source: unknown
+}
+```
+
+Occurs when `source` fails a check to be an integer number:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.int.decode(12.3).error
+// == {
+//   type: 'EXPECT_INT',
+//   source: 12.3
+// }
+```
+
+#### `EXPECT_EXACT`
+
+Signature:
+
+```ts
+// not exported
+type ExpectExactError = {
+  type: 'EXPECT_EXACT'
+  value: string | number | boolean | null
+  source: unknown
+}
+```
+
+Occurs when `source` is not equal to `value`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.exact('ADMIN').decode('admin').error
+// == {
+//   type: 'EXPECT_EXACT',
+//   value: 'ADMIN',
+//   source: 'admin'
+// }
+
+const theWorstYear = new Date(2020, 0, 1)
+
+Decode.exact(2020, theWorstYear).decode(2021).error
+// == {
+//   type: 'EXPECT_EXACT',
+//   value: 2020,
+//   source: 2021
+// }
+```
+
+#### `EXPECT_ARRAY`
+
+Signature:
+
+```ts
+// not exported
+type ExpectArrayError = {
+  type: 'EXPECT_ARRAY'
+  source: unknown
+}
+```
+
+Occurs when `source` fails a check to be an array:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.list(Decode.int).decode({ title: 'NY times' }).error
+// == {
+//   type: 'EXPECT_ARRAY',
+//   source: { title: 'NY times' }
+// }
+
+Decode.index(2).boolean.decode({ name: 'Boris' }).error
+// == {
+//   type: 'EXPECT_ARRAY',
+//   source: { name: 'Boris' }
+// }
+```
+
+#### `EXPECT_OBJECT`
+
+Signature:
+
+```ts
+// not exported
+type ExpectObjectError = {
+  type: 'EXPECT_OBJECT'
+  source: unknown
+}
+```
+
+Occurs when `source` fails a check to be an object:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.record(Decode.int).decode([1, 2, 3]).error
+// == {
+//   type: 'EXPECT_OBJECT',
+//   source: [ 1, 2, 3 ]
+// }
+
+Decode.keyValue(Decode.string).decode(`Let's rock!`).error
+// == {
+//   type: 'EXPECT_OBJECT',
+//   source: 'Let\'s rock!'
+// }
+
+Decode.field('length').boolean.decode([true, false]).error
+// == {
+//   type: 'EXPECT_OBJECT',
+//   source: [ true, false ]
+// }
+```
+
+#### `FAILURE`
+
+Signature:
+
+```ts
+// not exported
+type FailureError = {
+  type: 'FAILURE'
+  message: string
+  source: unknown
+}
+```
+
+Occurs either when [`Decode.fail`](#DecodeFail) run into decoding or when key converting in [`Decode.keyValue`](#DecodeKeyValue) (or [`DecodeOptional.keyValue`](#DecodeOptionalKeyValue)) fails.
+
+```ts
+import Decode from 'decode-json'
+
+Decode.int
+  .chain(num => {
+    if (num > 0) {
+      return Decode.succeed(num)
+    }
+
+    return Decode.fail('Expect positive integer')
+  })
+  .decode(-1).error
+// == {
+//   type: 'FAILURE',
+//   message: 'Expect positive integer',
+//   source: -1
+// }
+
+Decode.keyValue(key => {
+  const num = parseInt(key, 10)
+
+  if (!isNaN(num)) {
+    return Decode.succeed(num)
+  }
+
+  return Decode.fail('Could not convert string to integer')
+}, Decode.string).decode({
+  1: 'first',
+  2: 'second',
+  _3: 'third'
+})
+// == {
+//   type: 'FAILURE',
+//   message: 'Could not convert string to integer',
+//   source: '_3'
+// }
+```
+
+#### `REQUIRED_INDEX`
+
+Signature:
+
+```ts
+// not exported
+type RequiredIndexError = {
+  type: 'REQUIRED_INDEX'
+  position: number
+  source: Array<unknown>
+}
+```
+
+Occurs when [`Decode.index`](#DecodeIndex) could not reach an element at a required `position` of a `source` array.
+
+```ts
+import Decode from 'decode-json'
+
+Decode.index(2).boolean.decode([true, false]).error
+// == {
+//   type: 'REQUIRED_INDEX',
+//   position: 2,
+//   source: [ true, false ]
+// }
+```
+
+#### `REQUIRED_FIELD`
+
+Signature:
+
+```ts
+// not exported
+type RequiredFieldError = {
+  type: 'REQUIRED_FIELD'
+  name: string
+  source: Record<string, unknown>
+}
+```
+
+Occurs when [`Decode.field`](#DecodeField) could not reach a field by `name` in a `source` object.
+
+```ts
+import Decode from 'decode-json'
+
+Decode.field('age').int.decode({
+  id: 123,
+  name: 'Tom'
+}).error
+// == {
+//   type: 'REQUIRED_FIELD',
+//   name: 'age',
+//   source: { id: 123, name: 'Tom' }
+// }
+```
+
+#### `AT_INDEX`
+
+Signature:
+
+```ts
+// not exported
+type AtIndexError = {
+  type: 'AT_INDEX'
+  position: number
+  error: DecodeError
+}
+```
+
+Occurs when a decoding fails with an `error` at some specific array's element at `position`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.list(Decode.int).decode([1, 2, 2.5]).error
+// == {
+//   type: 'AT_INDEX',
+//   position: 2,
+//   error: {
+//     type: 'EXPECT_INT',
+//     source: 2.5
+//   }
+// }
+
+Decode.index(2).boolean.decode([false, true, 'ok']).error
+// == {
+//   type: 'AT_INDEX',
+//   position: 2,
+//   error: {
+//     type: 'EXPECT_BOOLEAN',
+//     source: 'ok'
+//   }
+// }
+```
+
+#### `IN_FIELD`
+
+Signature:
+
+```ts
+// not exported
+type InFieldError = {
+  type: 'IN_FIELD'
+  name: string
+  error: DecodeError
+}
+```
+
+Occurs when a decoding fails with an `error` in some specific object's field with `name`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.record(Decode.int).decode({
+  one: 1,
+  two: 2,
+  three: '3rd'
+}).error
+// == {
+//   type: 'IN_FIELD',
+//   name: 'three',
+//   error: {
+//     type: 'EXPECT_INT',
+//     source: '3rd'
+//   }
+// }
+
+Decode.keyValue(Decode.string).decode({
+  Russia: 'Moscow',
+  Netherlands: 'Amsterdam',
+  USA: null
+}).error
+// == {
+//   type: 'IN_FIELD',
+//   name: 'USA',
+//   error: {
+//     type: 'EXPECT_STRING',
+//     source: null
+//   }
+// }
+
+Decode.field('is_active').boolean.decode({
+  id: 123,
+  name: 'Carl',
+  is_active: 'no'
+}).error
+// == {
+//   type: 'IN_FIELD',
+//   name: 'is_active',
+//   error: {
+//     type: 'EXPECT_BOOLEAN',
+//     source: 'no'
+//   }
+// }
+```
+
+#### `OPTIONAL`
+
+Signature:
+
+```ts
+// not exported
+type OptionalDecodeError = {
+  type: 'OPTIONAL'
+  error: DecodeError
+}
+```
+
+Indicates that an `error` occurs for an optional path or value:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.int.decode(1.23).error
+// == {
+//   type: 'OPTIONAL',
+//   error: {
+//     type: 'EXPECT_INT',
+//     source: 1.23
+//   }
+// }
+
+Decode.optional.field('lat').float.decode({
+  lng: 123.45,
+  lat: null
+}).error
+// == {
+//   type: 'OPTIONAL',
+//   error: {
+//     type: 'IN_FIELD',
+//     name: 'lat',
+//     error: {
+//       type: 'EXPECT_FLOAT',
+//       source: null
+//     }
+//   }
+// }
+```
+
+#### `ONE_OF`
+
+Signature:
+
+```ts
+// not exported
+type OneOfError = {
+  type: 'ONE_OF'
+  errors: Array<DecodeError>
+}
+```
+
+Occurs when none of [`Decode.oneOf`](#DecodeOneOf) decoders passes with `errors` from each of the decoders:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.oneOf([
+  Decode.tuple(
+    // for coordinates as object
+    Decode.field('lat').float,
+    Decode.field('lng').float
+  ),
+
+  Decode.tuple(
+    // for coordinates as array
+    Decode.index(0).float,
+    Decode.index(1).float
+  )
+]).decode({ lat: 1.23, lon: 4.56 }).error
+// == {
+//   type: 'ONE_OF',
+//   errors: [
+//     {
+//       type: 'REQUIRED_FIELD',
+//       name: 'lng',
+//       source: { lat: 1.23, lon: 4.56 }
+//     },
+//     {
+//       type: 'EXPECT_ARRAY',
+//       source: { lat: 1.23, lon: 4.56 }
+//     }
+//   ]
+// }
+```
+
+#### `RUNTIME_EXCEPTION`
+
+Signature:
+
+```ts
+type RuntimeException = {
+  type: 'RUNTIME_EXCEPTION'
+  error: Error
+}
+```
+
+Occurs when something unexpected happens while decoding is running so you should never worry about wrapping a decoder to `try..catch` because it does it for you automatically in runtime and TypeScript take care about correct usage during compile time.
+
+### `DecodeJsonError`
+
+A set of errors describe what went wrong during decoding of JSON string with [`Decoder.decodeJson`](#DecoderDecodeJson). The set is a union of [`DecodeError`](#DecodeError) with one more specific error for parse json exception.
+
+#### `INVALID_JSON`
+
+Signature:
+
+```ts
+type RuntimeException = {
+  type: 'INVALID_JSON'
+  error: SyntaxError
+  source: string
+}
+```
+
+Occurs when [`Decoder.decodeJson`](#DecoderDecodeJson) tries to decode invalid JSON string:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.string.decodeJson('I am just a string').error
+// == {
+//   type: 'INVALID_JSON',
+//   error: new SyntaxError('Unexpected token I in JSON at position 0'),
+//   source: 'I am just a string'
+// }
 ```
