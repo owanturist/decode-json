@@ -13,6 +13,8 @@ test('Decode.float', t => {
   t.deepEqual(Decode.float.decode(null).error, ExpectFloat(null))
   t.deepEqual(Decode.float.decode('str').error, ExpectFloat('str'))
   t.deepEqual(Decode.float.decode(true).error, ExpectFloat(true))
+  t.deepEqual(Decode.float.decode(NaN).error, ExpectFloat(NaN))
+  t.deepEqual(Decode.float.decode(Infinity).error, ExpectFloat(Infinity))
 })
 
 test('Decode.optional.float', t => {
@@ -28,6 +30,14 @@ test('Decode.optional.float', t => {
   t.deepEqual(
     Decode.optional.float.decode(true).error,
     Optional(ExpectFloat(true))
+  )
+  t.deepEqual(
+    Decode.optional.float.decode(NaN).error,
+    Optional(ExpectFloat(NaN))
+  )
+  t.deepEqual(
+    Decode.optional.float.decode(Infinity).error,
+    Optional(ExpectFloat(Infinity))
   )
 })
 

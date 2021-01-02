@@ -7,7 +7,7 @@ const isBoolean = (input: unknown): input is boolean => {
 }
 
 const isNumber = (input: unknown): input is number => {
-  return typeof input === 'number'
+  return typeof input === 'number' && !isNaN(input) && isFinite(input)
 }
 
 const isInteger = (input: unknown): input is number => {
@@ -1013,6 +1013,8 @@ function index(position: number): RequiredDecodePath {
 
 export default {
   optional,
+  field,
+  index,
 
   unknown,
   string,
@@ -1024,16 +1026,13 @@ export default {
   record,
   list,
   keyValue,
+
   shape,
   tuple,
 
   oneOf,
-
-  field,
-  index,
+  lazy,
 
   fail,
-  succeed,
-
-  lazy
+  succeed
 }

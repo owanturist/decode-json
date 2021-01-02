@@ -29,14 +29,29 @@ Let assume you are building a Star Wars fan wep application and you'd like to re
 }
 ```
 
-For now the app only needs to know name and birth year of a character so that's how it can be decoded safely:
+This is how it can be decoded safely:
 
 ```ts
-import Decode from 'decode-json'
+import Decode, { Decoder } from 'decode-json'
+
+const parseFloatDecoder: Decoder<number> = Decode.oneOf([
+  Decode.float, // in case the value is float already
+  Decode.string.chain(str => {
+    const num = Number(str || '_') // prevents Number('') === 0
+
+    if (isNaN(num)) {
+      return Decode.fail(`Could not parse "${str}" as a float`)
+    }
+
+    return Decode.succeed(num)
+  })
+])
 
 const characterDecoder = Decode.shape({
   name: Decode.field('name').string,
-  birthYear: Decode.field('birth_year').string
+  birthYear: Decode.field('birth_year').string,
+  height: Decode.field('height').of(parseFloatDecoder),
+  mass: Decode.field('mass').of(parseFloatDecoder)
 })
 
 const response = await fetch('https://swapi.dev/api/people/1')
@@ -46,11 +61,11 @@ const decodeResult = characterDecoder.decode(response)
 
 The decoder above does next steps:
 
-1. tries to extract a value from `name` field of the `response`
-1. checks that extracted `name` value is a string
-1. tries to extract a value from `birth_year` field of the `response`
-1. checks that extracted `birth_year` value is a string
-1. creates an output object with field `name` and `birthYear` with values assigned respectively.
+1. tries to extract a value from `name` field of the `response` and checks the value is a string
+1. tries to extract a value from `birth_year` field of the `response` and checks the value is a string
+1. tries to extract a value from `height` field of the `response` and parses the value as a float
+1. tries to extract a value from `mass` field of the `response` and parses the value as a float
+1. creates an output object with field `name`, `birthYear`, `height` and `mass` with values assigned respectively.
 
 If a response reflects our expectations so the results for `swapi.dev/api/people/1` will look like:
 
@@ -58,27 +73,30 @@ If a response reflects our expectations so the results for `swapi.dev/api/people
 const decodeResult = {
   value: {
     name: 'Luke Skywalker',
-    birthYear: '19BBY'
+    birthYear: '19BBY',
+    height: 172,
+    mass: 77
   }
 }
 ```
 
-But as soon as one of the 1-4 steps fails you will get a detailed report why it happened. Let's say the server sends birth year as a number but not a string for some reason. Here is what you'll get when `"19BBY"` string becomes `19093823` number:
+But as soon as one of the 1-4 steps fails you will get a detailed report why it happened. Let's say the server sends birth height as a formatted string with a unit for some reason. Here is what you'll get when `"172"` string becomes `172 cm` number:
 
 ```ts
 const decodeResult = {
   error: {
     type: 'IN_FIELD',
-    field: 'birth_year',
+    field: 'height',
     error: {
-      type: 'EXPECT_STRING',
-      source: 19093823
+      type: 'FAILURE',
+      message: 'Could not parse "172 cm" as a float',
+      source: '172 cm'
     }
   }
 }
 ```
 
-And the trick is that by using a decoder a developer assumes that decode result might be either succeed or failed but not blindly trust that with `200` status code you'll get a valid data. So there is no way for the developer to ignore the awareness of failure but only handle the case somehow. Is not it amazing concept?
+And the trick is that by using a decoder a developer assumes that decode result might be either succeed or failed but not blindly trust that with `200` status code you'll get a valid data. So there is no way for the developer to ignore the awareness of failure but only handle the case somehow. Is not it an amazing concept?
 
 ## API
 
@@ -112,7 +130,7 @@ const userDecoder: Decoder<User> = Decode.shape({
   id: Decode.field('uuid').string,
   nickname: Decode.field('username').string,
   active: Decode.field('is_active').boolean,
-  age: Decode.field('age').number
+  age: Decode.field('age').int
 })
 ```
 
@@ -133,20 +151,30 @@ const charCountDecoder: Decoder<number> = Decode.string.map(
 
 #### `Decoder.chain`
 
-Transforms decoded value decoder. You can turn a decoder to fail using this method. Very useful to validate some data:
+Transforms decoded value decoder:
 
 ```ts
 import Decode, { Decoder } from 'decode-json'
 
-const messageDecoder: Decoder<string> = Decode.string.chain(message => {
-  if (message.length >= 100) {
-    return Decode.succeed(message)
-  }
-
-  return Decode.fail(
-    `An input message has only ${message.length} characters long but at least 100 is required`
-  )
+const displayDateDecoder: Decoder<string> = Decode.field(
+  'active'
+).boolean.chain(active => {
+  return active
+    ? Decode.field('last_activity').string
+    : Decode.field('start_date').string
 })
+
+displayDateDecoder.decode({
+  active: false,
+  last_activity: '30 sec ago',
+  start_date: '1 Sep 2020'
+}).value // == '1 Sep 2020'
+
+displayDateDecoder.decode({
+  active: true,
+  last_activity: '30 sec ago',
+  start_date: '1 Sep 2020'
+}).value // == '30 sec ago'
 ```
 
 #### `Decoder.decode`
@@ -187,6 +215,7 @@ Decodes a string value:
 ```ts
 import Decode from 'decode-json'
 
+Decode.string.decode(null).error // == { type: 'EXPECT_STRING', source: null }
 Decode.string.decode(true).error // == { type: 'EXPECT_STRING', source: true }
 Decode.string.decode(1234).error // == { type: 'EXPECT_STRING', source: 1234 }
 Decode.string.decode(12.3).error // == { type: 'EXPECT_STRING', source: 12.3 }
@@ -200,6 +229,7 @@ Decodes a boolean value:
 ```ts
 import Decode from 'decode-json'
 
+Decode.boolean.decode(null).error // == { type: 'EXPECT_BOOLEAN', source: null }
 Decode.boolean.decode(1234).error // == { type: 'EXPECT_BOOLEAN', source: 1234 }
 Decode.boolean.decode(12.3).error // == { type: 'EXPECT_BOOLEAN', source: 12.3 }
 Decode.boolean.decode('hi').error // == { type: 'EXPECT_BOOLEAN', source: 'hi' }
@@ -213,6 +243,7 @@ Decodes an integer value:
 ```ts
 import Decode from 'decode-json'
 
+Decode.int.decode(null).error // == { type: 'EXPECT_INT', source: null }
 Decode.int.decode(true).error // == { type: 'EXPECT_INT', source: true }
 Decode.int.decode('hi').error // == { type: 'EXPECT_INT', source: 'hi' }
 Decode.int.decode(12.3).error // == { type: 'EXPECT_INT', source: 12.3 }
@@ -226,6 +257,7 @@ Decodes a float value:
 ```ts
 import Decode from 'decode-json'
 
+Decode.float.decode(null).error // == { type: 'EXPECT_FLOAT', source: null }
 Decode.float.decode(true).error // == { type: 'EXPECT_FLOAT', source: true }
 Decode.float.decode('hi').error // == { type: 'EXPECT_FLOAT', source: 'hi' }
 Decode.float.decode(12.3).value // 12.3
@@ -466,7 +498,7 @@ const userDecoder: Decoder<User> = Decode.shape({
   id: Decode.field('uuid').string,
   nickname: Decode.field('username').string,
   active: Decode.field('is_active').boolean,
-  age: Decode.field('age').number
+  age: Decode.field('age').int
 })
 
 userDecoder.decode({
@@ -501,3 +533,375 @@ userDecoder.decode({
 > _Note_: `Decode.record` **does not** decode any value! It only combines another decoders' values.
 
 > You also notice that shape's fields does describe any path fragments for assigned decoders - these are only destinations of decoded values.
+
+### `Decode.tuple`
+
+Combines decoded values to the corresponding tuple segments:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const pointDecoder: Decoder<[string, number]> = Decode.tuple(
+  Decode.field('x').float,
+  Decode.field('y').float
+)
+
+pointDecoder.decode({
+  x: 12.34,
+  y: 56.78
+}).value // == [ 12.34, 56.78 ]
+
+pointDecoder.decode({
+  x: 12.34,
+  y: '56.78'
+}).error
+// == {
+//   type: 'IN_FIELD',
+//   field: 'y',
+//   error: {
+//     type: 'EXPECT_FLOAT',
+//     source: '56.78'
+//   }
+// }
+```
+
+> _Note_: `Decode.tuple` **does not** decode any value! It only combines another decoders' values.
+
+> You also notice that tuple's segments does describe any path fragments for assigned decoders - these are only destinations of decoded values.
+
+### `Decode.field`
+
+Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
+
+```ts
+import Decode, { RequiredDecodePath } from 'decode-json'
+
+const currentUserPath: RequiredDecodePath = Decode.field('current_user')
+const currentUserIdPath: RequiredDecodePath = currentUserPath.field('id')
+
+currentUserIdPath.string.decode({
+  current_user: {
+    id: 'kjn32',
+    name: 'Daria'
+  }
+}).value // == 'kjn32'
+
+currentUserIdPath.string.decode({
+  current_user: {
+    id: 2302,
+    name: 'Daria'
+  }
+}).error
+// == {
+//   type: 'IN_FIELD',
+//   name: 'current_user',
+//   error: {
+//     type: 'IN_FIELD',
+//     name: 'id',
+//     error: {
+//       type: 'EXPECT_STRING',
+//       source: 2302
+//     }
+//   }
+// }
+```
+
+### `Decode.index`
+
+Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
+
+```ts
+import Decode, { RequiredDecodePath } from 'decode-json'
+
+const secondPointPath: RequiredDecodePath = Decode.index(1)
+const secondPointXPath: RequiredDecodePath = secondPointPath.index(0)
+
+secondPointXPath.float.decode([
+  [0.32, 1.03],
+  [8.79, 7.54],
+  [2.93, 4.13]
+]).value // == 8.79
+
+currentUserIdPath.string.decode([
+  ['0.32', '1.03'],
+  ['8.79', '7.54'],
+  ['2.93', '4.13']
+]).error
+// == {
+//   type: 'AT_INDEX',
+//   position: 1',
+//   error: {
+//     type: 'AT_INDEX',
+//     position: 0',
+//     error: {
+//       type: 'EXPECT_FLOAT',
+//       source: '8.79'
+//     }
+//   }
+// }
+```
+
+### `Decode.oneOf`
+
+Try a bunch of different decoders. This can be useful if the values may come in a couple different formats.
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const dateDecoder: Decoder<Date> = Decode.oneOf([
+  Decode.int.map(timestamp => new Date(timestamp)),
+  Decode.string.chain(datetime => {
+    const date = new Date(datetime)
+
+    if (isNaN(date.getMilliseconds())) {
+      return Decode.fail(`Could not create a date from "${datetime}"`)
+    }
+
+    return Decode.succeed(date)
+  })
+])
+
+dateDecoder.decode(1609542413856).value // == new Date('Fri, 01 Jan 2021 23:06:53 GMT')
+dateDecoder.decode('Fri, 01 Jan 2021 23:06:53 GMT').value // == new Date(1609542413856)
+dateDecoder.decode('01|01|2021').error
+// == {
+//   type: 'ONE_OF',
+//   errors: [
+//     {
+//       type: 'EXPECT_INT',
+//       source: '01|01|2021'
+//     },
+//     {
+//       type: 'FAILURE',
+//       message: 'Could not create a date from "01|01|2021"',
+//       source: '01|01|2021'
+//     }
+//   ]
+// }
+```
+
+This is a powerful tool to work with inconsistent data:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+interface User {
+  id: string
+  nickname: string
+  active: boolean
+  age: number
+}
+
+const userDecoder: Decoder<User> = Decode.oneOf([
+  // legacy version
+  Decode.shape({
+    id: Decode.field('index').int.map(String),
+    nickname: Decode.field('name').string,
+    active: Decode.field('is_active').boolean,
+    age: Decode.field('years').int
+  }),
+
+  // latest version
+  Decode.shape({
+    id: Decode.field('uuid').string,
+    nickname: Decode.field('username').string,
+    active: Decode.field('isActive').boolean,
+    age: Decode.field('age').int
+  })
+])
+
+userDecoder.decode({
+  index: 0,
+  name: 'Rachel',
+  is_active: true,
+  years: 30
+}).value
+// == {
+//   id: '0',
+//   nickname: 'Rachel',
+//   active: true,
+//   age: 30
+// }
+
+userDecoder.decode({
+  uuid: 'dklasj23',
+  username: 'Ross',
+  isActive: true,
+  age: 32
+}).value
+// == {
+//   id: 'dklasj23',
+//   nickname: 'Ross',
+//   active: true,
+//   age: 32
+// }
+```
+
+It also can be used to set a default value if all of the decoders fails for whatever reason:
+
+```ts
+import Decode from 'decode-json'
+
+const configDecoder = Decode.oneOf([
+  Decode.shape({
+    hostUrl: Decode.field('HOST_URL').string,
+    apiVersion: Decode.field('API_VERSION').int
+  }),
+
+  Decode.succeed({
+    hostUrl: 'localhost:8000',
+    apiVersion: 1
+  })
+])
+
+configDecoder.decode(null).value
+// == {
+//   hostUrl: 'localhost:8000',
+//   apiVersion: 1
+// }
+```
+
+### `Decode.lazy`
+
+Sometimes you have a recursive data structures, like comments with responses, which also are comments with responses, which also... you got the point. To make sure a decoder unrolls lazily it should use `Decode.lazy` wrapper:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+interface Comment {
+  message: string
+  responses: Array<Comment>
+}
+
+const commentDecoder: Decoder<Comment> = Decode.shape({
+  message: Decode.field('mes').string,
+  responses: Decode.field('res').list(Decode.lazy(() => commentDecoder))
+})
+
+commentDecoder.decode({
+  mes: 'oops',
+  res: [
+    {
+      mes: 'yes',
+      res: [
+        {
+          mes: 'here we go again',
+          res: []
+        }
+      ]
+    },
+    {
+      mes: 'no',
+      res: [
+        {
+          mes: 'that is right',
+          res: [
+            {
+              mes: 'agree',
+              res: []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}).value
+// == {
+//   message: 'oops',
+//   responses: [
+//     {
+//       message: 'yes',
+//       responses: [
+//         {
+//           message: 'here we go again',
+//           responses: []
+//         }
+//       ]
+//     },
+//     {
+//       message: 'no',
+//       responses: [
+//         {
+//           message: 'that is right',
+//           responses: [
+//             {
+//               message: 'agree',
+//               responses: []
+//             }
+//           ]
+//         }
+//       ]
+//     }
+//   ]
+// }
+```
+
+### `Decode.fail`
+
+Ignores a decoding value and make the decoder fail. This is handy when used with [`Decode.oneOf`](#DecodeOneOf) or [`Decoder.chain`](#DecoderChain) where you want to give a custom error message in some cases.
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const positiveIntDecoder: Decoder<number> = Decode.int.chain(int => {
+  if (int > 0) {
+    return Decode.succeed(int)
+  }
+
+  return Decode.fail(`Expects positive int but get ${int} instead`)
+})
+
+positiveIntDecoder.decode(42).value // == 42
+
+positiveIntDecoder.decode(-1).error
+// == {
+//   type: 'FAILURE',
+//   message: 'Expects positive int but get -1 instead',
+//   source: -1
+// }
+```
+
+> _Note_: see [`Decode.oneOf`](#DecodeOneOf) and [`Decoder.chain`](#DecoderChain) for more examples.
+
+### `Decode.succeed`
+
+Ignores a decoding value and produce a certain value. Handy when used with [`Decode.oneOf`](#DecodeOneOf) or [`Decoder.chain`](#DecoderChain).
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const messageDecoder: Decoder<string> = Decode.string.chain(message => {
+  if (message.length >= 10) {
+    return Decode.succeed(message)
+  }
+
+  return Decode.fail(
+    `An input message is only ${message.length} chars long but at least 10 is required`
+  )
+})
+
+messageDecoder.decode('Quite long message').value // == 'Quite long message'
+messageDecoder.decode('Short').error
+// == An input message is only 5 chars long but at least 10 is required
+messageDecoder.decode(123).error // == { type: 'EXPECT_STRING', source: 123 }
+```
+
+Can be used to define hardcoded values.
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const pointDecoder = Decoder.shape({
+  x: Decode.index(0).float,
+  y: Decode.index(1).float,
+  z: Decode.succeed(0)
+})
+
+pointDecoder.decode([0.31, 8.17]).value // == { x: 0.31, y: 8.17, z: 0 }
+```
+
+> _Note_: see [`Decode.oneOf`](#DecodeOneOf) and [`Decoder.chain`](#DecoderChain) for more examples.
+
+### `Decode.optional`
+
+Creates [`OptionalDecoder`](#OptionalDecoder) instance.

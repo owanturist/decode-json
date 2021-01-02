@@ -3,7 +3,13 @@
 import test from 'ava'
 
 import Decode, { Decoder } from '../src'
-import { InField, RequiredField, ExpectInt } from './error'
+import {
+  InField,
+  RequiredField,
+  ExpectInt,
+  AtIndex,
+  ExpectString
+} from './error'
 
 interface Message {
   content: string
@@ -87,6 +93,50 @@ test('Decode.lazy()', t => {
         }
       ]
     }
+  )
+
+  t.deepEqual(
+    _0.decode({
+      con: 'oops',
+      com: [
+        {
+          con: 'yes',
+          com: [
+            {
+              con: 'here we go again',
+              com: []
+            }
+          ]
+        },
+        {
+          con: 'no',
+          com: [
+            {
+              con: 'that is right',
+              com: [
+                {
+                  con: null,
+                  com: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }).error,
+    InField(
+      'com',
+      AtIndex(
+        1,
+        InField(
+          'com',
+          AtIndex(
+            0,
+            InField('com', AtIndex(0, InField('con', ExpectString(null))))
+          )
+        )
+      )
+    )
   )
 })
 
