@@ -3,7 +3,13 @@
 import test from 'ava'
 
 import Decode, { Decoder } from '../src'
-import { InField, RequiredField, ExpectInt } from './error'
+import {
+  InField,
+  RequiredField,
+  ExpectInt,
+  AtIndex,
+  ExpectString
+} from './error'
 
 interface Message {
   content: string
@@ -88,6 +94,50 @@ test('Decode.lazy()', t => {
       ]
     }
   )
+
+  t.deepEqual(
+    _0.decode({
+      con: 'oops',
+      com: [
+        {
+          con: 'yes',
+          com: [
+            {
+              con: 'here we go again',
+              com: []
+            }
+          ]
+        },
+        {
+          con: 'no',
+          com: [
+            {
+              con: 'that is right',
+              com: [
+                {
+                  con: null,
+                  com: []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }).error,
+    InField(
+      'com',
+      AtIndex(
+        1,
+        InField(
+          'com',
+          AtIndex(
+            0,
+            InField('com', AtIndex(0, InField('con', ExpectString(null))))
+          )
+        )
+      )
+    )
+  )
 })
 
 interface Node {
@@ -98,11 +148,17 @@ interface Node {
 
 const nodeDecoder: Decoder<Node> = Decode.shape({
   key: Decode.field('k').int,
-  left: Decode.field('l').optional.lazy(() => nodeDecoder),
-  right: Decode.field('r').optional.lazy(() => nodeDecoder)
+  left: Decode.field('l').oneOf([
+    Decode.exact(null),
+    Decode.lazy(() => nodeDecoder)
+  ]),
+  right: Decode.field('r').oneOf([
+    Decode.exact(null),
+    Decode.lazy(() => nodeDecoder)
+  ])
 })
 
-test('Decode.optional.lazy()', t => {
+test('Decode.lazy() with nullable', t => {
   // Decoder<Node>
   const _0 = nodeDecoder
 

@@ -3,14 +3,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import {
-  Optional,
-  ExpectExact,
-  InField,
-  AtIndex,
-  OneOf,
-  ExpectString
-} from './error'
+import { ExpectExact, InField, AtIndex, OneOf, ExpectString } from './error'
 
 interface Currency {
   toCode(): string
@@ -38,23 +31,6 @@ test('Decode.exact()', t => {
   t.is(_1.decode(1).value, EUR)
 })
 
-test('Decode.optional.exact()', t => {
-  // Decoder<false | null>
-  const _0 = Decode.optional.exact(false)
-
-  t.is(_0.decode(undefined).value, null)
-  t.is(_0.decode(null).value, null)
-  t.is(_0.decode(false).value, false)
-
-  t.deepEqual(_0.decode('str').error, Optional(ExpectExact(false, 'str')))
-  t.deepEqual(_0.decode(true).error, Optional(ExpectExact(false, true)))
-
-  // Decoder<Currency | null>
-  const _1 = Decode.optional.exact('usd', USD)
-
-  t.is(_1.decode('usd').value, USD)
-})
-
 test('Decode.field().exact()', t => {
   // Decoder<Currency>
   const _0 = Decode.field('_0').exact(true, RUB)
@@ -67,20 +43,6 @@ test('Decode.field().exact()', t => {
   )
 })
 
-test('Decode.field().optional.exact()', t => {
-  // Decode<123 | null>
-  const _0 = Decode.field('_0').optional.exact(123)
-
-  t.is(_0.decode({ _0: null }).value, null)
-  t.is(_0.decode({ _0: undefined }).value, null)
-  t.is(_0.decode({ _0: 123 }).value, 123)
-
-  t.deepEqual(
-    _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(ExpectExact(123, 'str')))
-  )
-})
-
 test('Decode.index().exact()', t => {
   // Decode<"key">
   const _0 = Decode.index(1).exact('key')
@@ -89,17 +51,6 @@ test('Decode.index().exact()', t => {
 
   t.deepEqual(_0.decode([0, null]).error, AtIndex(1, ExpectExact('key', null)))
   t.deepEqual(_0.decode([0, 1.23]).error, AtIndex(1, ExpectExact('key', 1.23)))
-})
-
-test('Decode.index().optional.exact()', t => {
-  // Decode<0 | null>
-  const _0 = Decode.index(1).optional.exact(0)
-
-  t.is(_0.decode([0, undefined]).value, null)
-  t.is(_0.decode([0, null]).value, null)
-  t.is(_0.decode([0, 0]).value, 0)
-
-  t.deepEqual(_0.decode(['', 1]).error, AtIndex(1, Optional(ExpectExact(0, 1))))
 })
 
 test('Decode.oneOf(Decode.exact())', t => {

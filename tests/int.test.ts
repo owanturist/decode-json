@@ -13,6 +13,8 @@ test('Decode.int', t => {
   t.deepEqual(Decode.int.decode('str').error, ExpectInt('str'))
   t.deepEqual(Decode.int.decode(true).error, ExpectInt(true))
   t.deepEqual(Decode.int.decode(1.1).error, ExpectInt(1.1))
+  t.deepEqual(Decode.int.decode(NaN).error, ExpectInt(NaN))
+  t.deepEqual(Decode.int.decode(Infinity).error, ExpectInt(Infinity))
 })
 
 test('Decode.optional.int', t => {
@@ -26,6 +28,11 @@ test('Decode.optional.int', t => {
   )
   t.deepEqual(Decode.optional.int.decode(true).error, Optional(ExpectInt(true)))
   t.deepEqual(Decode.optional.int.decode(1.1).error, Optional(ExpectInt(1.1)))
+  t.deepEqual(Decode.optional.int.decode(NaN).error, Optional(ExpectInt(NaN)))
+  t.deepEqual(
+    Decode.optional.int.decode(Infinity).error,
+    Optional(ExpectInt(Infinity))
+  )
 })
 
 test('Decode.field().int', t => {

@@ -91,7 +91,7 @@ test('Decode.keyValue()', t => {
   ])
   t.deepEqual(
     _4.decode({ 0: 'a', 1: 'b', _2: 'c' }).error,
-    InField('_2', Failure('Not a number "_2"', '_2'))
+    Failure('Not a number "_2"', '_2')
   )
 })
 
@@ -134,7 +134,7 @@ test('Decode.optional.keyValue()', t => {
   ])
   t.deepEqual(
     _1.decode({ 0: 'a', 1: 'b', _2: 'c' }).error,
-    Optional(InField('_2', Failure('Not a number "_2"', '_2')))
+    Optional(Failure('Not a number "_2"', '_2'))
   )
 })
 
@@ -160,7 +160,7 @@ test('Decode.field().keyValue()', t => {
   ])
   t.deepEqual(
     _1.decode({ _0: { 0: true, 1: false, _2: true } }).error,
-    InField('_0', InField('_2', Failure('Not a number "_2"', '_2')))
+    InField('_0', Failure('Not a number "_2"', '_2'))
   )
 })
 
@@ -189,7 +189,7 @@ test('Decode.field().optional.keyValue()', t => {
   ])
   t.deepEqual(
     _1.decode({ _0: { 0: 'a', 1: 'b', _2: null } }).error,
-    InField('_0', Optional(InField('_2', Failure('Not a number "_2"', '_2'))))
+    InField('_0', Optional(Failure('Not a number "_2"', '_2')))
   )
 })
 
@@ -215,7 +215,7 @@ test('Decode.index().keyValue()', t => {
   ])
   t.deepEqual(
     _1.decode([{ 0: true, 1: false, _2: true }]).error,
-    AtIndex(0, InField('_2', Failure('Not a number "_2"', '_2')))
+    AtIndex(0, Failure('Not a number "_2"', '_2'))
   )
 })
 
@@ -244,6 +244,6 @@ test('Decode.index().optional.keyValue()', t => {
   ])
   t.deepEqual(
     _1.decode([{ 0: 'a', 1: 'b', _2: null }]).error,
-    AtIndex(0, Optional(InField('_2', Failure('Not a number "_2"', '_2'))))
+    AtIndex(0, Optional(Failure('Not a number "_2"', '_2')))
   )
 })

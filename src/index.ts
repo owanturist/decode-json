@@ -7,7 +7,7 @@ const isBoolean = (input: unknown): input is boolean => {
 }
 
 const isNumber = (input: unknown): input is number => {
-  return typeof input === 'number'
+  return typeof input === 'number' && !isNaN(input) && isFinite(input)
 }
 
 const isInteger = (input: unknown): input is number => {
@@ -29,14 +29,14 @@ const hasOwnProperty = (
   return Object.prototype.hasOwnProperty.call(obj, prop)
 }
 
-//
+// E R R O R
 
 export type DecodeError =
+  | { type: 'RUNTIME_EXCEPTION'; error: Error }
+  | { type: 'ONE_OF'; errors: Array<DecodeError> }
   | { type: 'OPTIONAL'; error: DecodeError }
   | { type: 'IN_FIELD'; name: string; error: DecodeError }
   | { type: 'AT_INDEX'; position: number; error: DecodeError }
-  | { type: 'ONE_OF'; errors: Array<DecodeError> }
-  | { type: 'RUNTIME_EXCEPTION'; error: Error }
   | { type: 'REQUIRED_FIELD'; name: string; source: Record<string, unknown> }
   | { type: 'REQUIRED_INDEX'; position: number; source: Array<unknown> }
   | { type: 'FAILURE'; message: string; source: unknown }
@@ -143,6 +143,8 @@ const ExpectArrayError = (source: unknown): DecodeError => ({
   source
 })
 
+// R E S U L T
+
 export type DecodeResult<E, T> =
   | { error: E; value?: never }
   | { error?: never; value: T }
@@ -150,8 +152,7 @@ export type DecodeResult<E, T> =
 const Left = <E, T>(error: E): DecodeResult<E, T> => ({ error })
 const Right = <E, T>(value: T): DecodeResult<E, T> => ({ value })
 
-//
-
+// D E C O D E R
 export interface Decoder<T> {
   map<R>(fn: (value: T) => R): Decoder<R>
   chain<R>(fn: (value: T) => Decoder<R>): Decoder<R>
@@ -326,7 +327,7 @@ class KeyValueDecoder<K, T> extends DecoderImpl<Array<[K, T]>> {
         const keyResult = this.convertKey(key)
 
         if (keyResult.error != null) {
-          return Left(InFieldError(key, FailureError(keyResult.error, key)))
+          return Left(FailureError(keyResult.error, key))
         }
 
         const itemResult = this.itemDecoder.decode(input[key])
@@ -524,7 +525,7 @@ class OptionalIndexDecoder<T> extends RequiredIndexDecoder<null | T> {
   }
 }
 
-export interface OptionalDecoder {
+export interface DecodeOptional {
   string: Decoder<null | string>
   boolean: Decoder<null | boolean>
   int: Decoder<null | number>
@@ -534,32 +535,20 @@ export interface OptionalDecoder {
   record: MakeRecord<false>
   keyValue: MakeKeyValue<false>
 
-  exact: MakeExact<false>
-  oneOf: MakeOneOf<false>
-
-  lazy: MakeLazy<false>
-
-  of<T>(decoder: Decoder<T>): Decoder<null | T>
-
-  field(name: string): OptionalDecodePath
-  index(position: number): OptionalDecodePath
+  field: MakeField<false>
+  index: MakeIndex<false>
 }
 
-export interface OptionalDecodePath extends OptionalDecoder {
-  optional: OptionalDecoder
-
-  unknown: Decoder<unknown>
-
-  tuple: MakeTuple<false>
-  shape: MakeShape<false>
-}
-
-class Optional implements OptionalDecoder {
+class Optional implements DecodeOptional {
   public constructor(
     private readonly createDecoder: <T>(
       decoder: Decoder<null | T>
     ) => Decoder<null | T>
   ) {}
+
+  private of<T>(decoder: Decoder<T>): Decoder<null | T> {
+    return this.createDecoder(new NullableDecoder(decoder))
+  }
 
   public get string(): Decoder<null | string> {
     return this.of(string)
@@ -575,22 +564,6 @@ class Optional implements OptionalDecoder {
 
   public get float(): Decoder<null | number> {
     return this.of(float)
-  }
-
-  public exact<T>(
-    ...args:
-      | [string | number | boolean | null]
-      | [string | number | boolean | null, T]
-  ): Decoder<string | number | boolean | null | T> {
-    return this.of(exactHelp(args))
-  }
-
-  public of<T>(decoder: Decoder<T>): Decoder<null | T> {
-    return this.createDecoder(new NullableDecoder(decoder))
-  }
-
-  public lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<null | T> {
-    return this.of(lazy(lazyDecoder))
   }
 
   public list<T>(itemDecoder: Decoder<T>): Decoder<null | Array<T>> {
@@ -609,67 +582,62 @@ class Optional implements OptionalDecoder {
     return this.of(keyValueHelp(args))
   }
 
-  public oneOf<T>(options: Array<Decoder<T>>): Decoder<null | T> {
-    return this.of(oneOf(options))
-  }
-
   public field(name: string): OptionalDecodePath {
-    const fieldPath = new DecodePath(
-      <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
-        return this.of(new OptionalFieldDecoder(name, decoder))
-      }
-    )
-
-    return (fieldPath as unknown) as OptionalDecodePath
+    return pathHelp<false>(decoder => {
+      return this.of(new OptionalFieldDecoder(name, decoder))
+    })
   }
 
   public index(position: number): OptionalDecodePath {
-    const indexPath = new DecodePath(
-      <T>(decoder: Decoder<null | T>): Decoder<null | T> => {
-        return this.of(new OptionalIndexDecoder(position, decoder))
-      }
-    )
-
-    return (indexPath as unknown) as OptionalDecodePath
+    return pathHelp<false>(decoder => {
+      return this.of(new OptionalIndexDecoder(position, decoder))
+    })
   }
 }
 
-export interface RequiredDecodePath {
-  optional: OptionalDecoder
+interface DecodePath<X extends boolean> {
+  optional: DecodeOptional
 
   unknown: Decoder<unknown>
-  string: Decoder<string>
-  boolean: Decoder<boolean>
-  int: Decoder<number>
-  float: Decoder<number>
+  string: Decoder<X extends true ? string : null | string>
+  boolean: Decoder<X extends true ? boolean : null | boolean>
+  int: Decoder<X extends true ? number : null | number>
+  float: Decoder<X extends true ? number : null | number>
 
-  list: MakeList<true>
-  record: MakeRecord<true>
-  keyValue: MakeKeyValue<true>
+  list: MakeList<X>
+  record: MakeRecord<X>
+  keyValue: MakeKeyValue<X>
 
-  tuple: MakeTuple<true>
-  shape: MakeShape<true>
+  tuple: MakeTuple<X>
+  shape: MakeShape<X>
 
-  exact: MakeExact<true>
-  oneOf: MakeOneOf<true>
+  exact: MakeExact<X>
+  oneOf: MakeOneOf<X>
 
-  lazy: MakeLazy<true>
+  lazy: MakeLazy<X>
 
-  of<T>(decoder: Decoder<T>): Decoder<T>
+  field: MakeField<X>
+  index: MakeIndex<X>
 
-  field(name: string): RequiredDecodePath
-  index(position: number): RequiredDecodePath
+  of<T>(decoder: Decoder<T>): Decoder<X extends true ? T : null | T>
 }
 
-interface CreateDecoder {
-  <T>(decoder: Decoder<T>): Decoder<T>
-  <T>(decoder: Decoder<null | T>): Decoder<null | T>
-}
+export type RequiredDecodePath = DecodePath<true>
 
-class DecodePath implements RequiredDecodePath {
-  public constructor(protected readonly createDecoder: CreateDecoder) {}
+export type OptionalDecodePath = DecodePath<false>
 
-  public get optional(): OptionalDecoder {
+class PathDecoder<X extends boolean> implements DecodePath<X> {
+  public constructor(
+    protected readonly createDecoder: <T>(
+      decoder: Decoder<T>
+    ) => Decoder<X extends true ? T : null | T>
+  ) {}
+
+  public of<T>(decoder: Decoder<T>): Decoder<X extends true ? T : null | T> {
+    return this.createDecoder(decoder)
+  }
+
+  public get optional(): DecodeOptional {
     return new Optional(this.createDecoder)
   }
 
@@ -677,19 +645,19 @@ class DecodePath implements RequiredDecodePath {
     return this.of(unknown)
   }
 
-  public get string(): Decoder<string> {
+  public get string(): Decoder<X extends true ? string : null | string> {
     return this.of(string)
   }
 
-  public get boolean(): Decoder<boolean> {
+  public get boolean(): Decoder<X extends true ? boolean : null | boolean> {
     return this.of(boolean)
   }
 
-  public get int(): Decoder<number> {
+  public get int(): Decoder<X extends true ? number : null | number> {
     return this.of(int)
   }
 
-  public get float(): Decoder<number> {
+  public get float(): Decoder<X extends true ? number : null | number> {
     return this.of(float)
   }
 
@@ -701,31 +669,33 @@ class DecodePath implements RequiredDecodePath {
     return this.of(exactHelp(args))
   }
 
-  public of<T>(decoder: Decoder<T>): Decoder<T> {
-    return this.createDecoder(decoder)
-  }
-
-  public lazy<T>(lazyDecoder: () => Decoder<T>): Decoder<T> {
+  public lazy<T>(
+    lazyDecoder: () => Decoder<T>
+  ): Decoder<X extends true ? T : null | T> {
     return this.of(lazy(lazyDecoder))
   }
 
-  public list<T>(itemDecoder: Decoder<T>): Decoder<Array<T>> {
+  public list<T>(
+    itemDecoder: Decoder<T>
+  ): Decoder<X extends true ? Array<T> : null | Array<T>> {
     return this.of(list(itemDecoder))
   }
 
   public tuple<T extends Array<unknown>>(
     ...schema: [Array<Decoder<unknown>>] | Array<Decoder<unknown>>
-  ): Decoder<T> {
+  ): Decoder<X extends true ? T : null | T> {
     return this.of(tupleHelp(schema))
   }
 
-  public record<T>(itemDecoder: Decoder<T>): Decoder<Record<string, T>> {
+  public record<T>(
+    itemDecoder: Decoder<T>
+  ): Decoder<X extends true ? Record<string, T> : null | Record<string, T>> {
     return this.of(record(itemDecoder))
   }
 
   public shape<T extends Record<string, unknown>>(
     schema: { [K in keyof T]: Decoder<T[K]> }
-  ): Decoder<T> {
+  ): Decoder<X extends true ? T : null | T> {
     return this.of(shape(schema))
   }
 
@@ -733,28 +703,32 @@ class DecodePath implements RequiredDecodePath {
     ...args:
       | [Decoder<T>]
       | [(key: string) => DecodeResult<string, K>, Decoder<T>]
-  ): Decoder<Array<[K | string, T]>> {
+  ): Decoder<
+    X extends true ? Array<[K | string, T]> : null | Array<[K | string, T]>
+  > {
     return this.of(keyValueHelp(args))
   }
 
-  public oneOf<T>(options: Array<Decoder<T>>): Decoder<T> {
+  public oneOf<T>(
+    options: Array<Decoder<T>>
+  ): Decoder<X extends true ? T : null | T> {
     return this.of(oneOf(options))
   }
 
-  public field(name: string): RequiredDecodePath {
-    return new DecodePath(
-      <T>(decoder: Decoder<T>): Decoder<T> => {
-        return this.of(new RequiredFieldDecoder(name, decoder))
-      }
-    )
+  public field(
+    name: string
+  ): X extends true ? RequiredDecodePath : OptionalDecodePath {
+    return pathHelp(decoder => {
+      return this.of(new RequiredFieldDecoder(name, decoder))
+    })
   }
 
-  public index(position: number): RequiredDecodePath {
-    return new DecodePath(
-      <T>(decoder: Decoder<T>): Decoder<T> => {
-        return this.of(new RequiredIndexDecoder(position, decoder))
-      }
-    )
+  public index(
+    position: number
+  ): X extends true ? RequiredDecodePath : OptionalDecodePath {
+    return pathHelp(decoder => {
+      return this.of(new RequiredIndexDecoder(position, decoder))
+    })
   }
 }
 
@@ -762,7 +736,7 @@ class DecodePath implements RequiredDecodePath {
 // -- P U B L I C   A P I --
 // -------------------------
 
-const optional: OptionalDecoder = new Optional(decoder => decoder)
+const optional: DecodeOptional = new Optional(decoder => decoder)
 
 const unknown: Decoder<unknown> = new UnknownDecoder()
 
@@ -993,26 +967,44 @@ type MakeLazy<X extends boolean> = <T>(
 
 const lazy: MakeLazy<true> = lazyDecoder => succeed(null).chain(lazyDecoder)
 
-// F I E L D
+// F I E L D   A N D   I N D E X
 
-function field(name: string): RequiredDecodePath {
-  return new DecodePath(
-    <T>(decoder: Decoder<T>): Decoder<T> =>
-      new RequiredFieldDecoder(name, decoder)
+const pathHelp = <X extends boolean>(
+  createDecoder: <T>(
+    decoder: Decoder<T>
+  ) => Decoder<X extends true ? T : null | T>
+): X extends true ? RequiredDecodePath : OptionalDecodePath => {
+  const pathDecoder = new PathDecoder(
+    <T>(decoder: Decoder<T>): Decoder<X extends true ? T : null | T> => {
+      return createDecoder(decoder)
+    }
   )
+
+  return (pathDecoder as unknown) as X extends true
+    ? RequiredDecodePath
+    : OptionalDecodePath
 }
 
-// I N D E X
+type MakeField<X extends boolean> = (
+  fieldName: string
+) => X extends true ? RequiredDecodePath : OptionalDecodePath
 
-function index(position: number): RequiredDecodePath {
-  return new DecodePath(
-    <T>(decoder: Decoder<T>): Decoder<T> =>
-      new RequiredIndexDecoder(position, decoder)
-  )
+const field: MakeField<true> = name => {
+  return pathHelp<true>(decoder => new RequiredFieldDecoder(name, decoder))
 }
 
-export default {
+type MakeIndex<X extends boolean> = (
+  elementPosition: number
+) => X extends true ? RequiredDecodePath : OptionalDecodePath
+
+const index: MakeIndex<true> = position => {
+  return pathHelp<true>(decoder => new RequiredIndexDecoder(position, decoder))
+}
+
+const Decode = {
   optional,
+  field,
+  index,
 
   unknown,
   string,
@@ -1021,19 +1013,18 @@ export default {
   float,
   exact,
 
-  fail,
-  succeed,
-
   record,
-  shape,
-  tuple,
   list,
   keyValue,
 
+  shape,
+  tuple,
+
   oneOf,
+  lazy,
 
-  field,
-  index,
-
-  lazy
+  fail,
+  succeed
 }
+
+export default Decode

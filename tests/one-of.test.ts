@@ -4,7 +4,6 @@ import test from 'ava'
 
 import Decode, { Decoder } from '../src'
 import {
-  Optional,
   OneOf,
   InField,
   AtIndex,
@@ -82,25 +81,6 @@ test('Decode.oneOf()', t => {
   )
 })
 
-test('Decode.optional.oneOf()', t => {
-  // Decoder<number | null>
-  const _0 = Decode.optional.oneOf([Decode.int, Decode.float.map(Math.round)])
-
-  t.is(_0.decode(undefined).value, null)
-  t.is(_0.decode(null).value, null)
-  t.is(_0.decode(1).value, 1)
-  t.is(_0.decode(1.7).value, 2)
-
-  t.deepEqual(
-    _0.decode('str').error,
-    Optional(OneOf([ExpectInt('str'), ExpectFloat('str')]))
-  )
-  t.deepEqual(
-    _0.decode(true).error,
-    Optional(OneOf([ExpectInt(true), ExpectFloat(true)]))
-  )
-})
-
 test('Decode.field().oneOf()', t => {
   // Decoder<number>
   const _0 = Decode.field('_0').oneOf([
@@ -128,24 +108,6 @@ test('Decode.field().oneOf()', t => {
   )
 })
 
-test('Decode.field().optional.oneOf()', t => {
-  // Decode<boolean | null>
-  const _0 = Decode.field('_0').optional.oneOf([
-    Decode.boolean,
-    Decode.int.map(num => num > 0)
-  ])
-
-  t.is(_0.decode({ _0: null }).value, null)
-  t.is(_0.decode({ _0: undefined }).value, null)
-  t.is(_0.decode({ _0: false }).value, false)
-  t.is(_0.decode({ _0: 123 }).value, true)
-
-  t.deepEqual(
-    _0.decode({ _0: 'str' }).error,
-    InField('_0', Optional(OneOf([ExpectBoolean('str'), ExpectInt('str')])))
-  )
-})
-
 test('Decode.index().oneOf()', t => {
   // Decode<string | number>
   const _0 = Decode.index(1).oneOf<number | string>([Decode.int, Decode.string])
@@ -160,25 +122,6 @@ test('Decode.index().oneOf()', t => {
   t.deepEqual(
     _0.decode([0, 1.23]).error,
     AtIndex(1, OneOf([ExpectInt(1.23), ExpectString(1.23)]))
-  )
-})
-
-test('Decode.index().optional.oneOf()', t => {
-  // Decode<string | null>
-  const _0 = Decode.index(1).optional.oneOf([
-    Decode.string,
-    Decode.boolean.map(x => (x ? 'yes' : 'no'))
-  ])
-
-  t.is(_0.decode([0, undefined]).value, null)
-  t.is(_0.decode([0, null]).value, null)
-  t.is(_0.decode([0, 'str']).value, 'str')
-  t.is(_0.decode([0, false]).value, 'no')
-  t.is(_0.decode([0, true]).value, 'yes')
-
-  t.deepEqual(
-    _0.decode(['', {}]).error,
-    AtIndex(1, Optional(OneOf([ExpectString({}), ExpectBoolean({})])))
   )
 })
 

@@ -1,7 +1,7 @@
 import test from 'ava'
 
 import Decode from '../src'
-import { InField, InvalidJson, Optional, RuntimeException } from './error'
+import { InvalidJson, InField, RuntimeException } from './error'
 
 test('Decoder.decodeJSON()', t => {
   t.is(
@@ -32,7 +32,22 @@ test('Decoder.decodeJSON()', t => {
   )
 
   t.deepEqual(
-    Decode.field('_0').optional.of(_0).decodeJSON('{"_0": "err"}').error,
-    InField('_0', Optional(RuntimeException(new Error('err'))))
+    Decode.field('_0')
+      .optional.string.chain(msg => {
+        throw new Error(msg || '')
+      })
+      .decodeJSON('{"_0": "err"}').error,
+    RuntimeException(new Error('err'))
+  )
+
+  t.deepEqual(
+    Decode.field('_0')
+      .of(
+        Decode.optional.string.chain(msg => {
+          throw new Error(msg || '')
+        })
+      )
+      .decodeJSON('{"_0": "err"}').error,
+    InField('_0', RuntimeException(new Error('err')))
   )
 })
