@@ -167,7 +167,8 @@ This is what you always get as result of running both [`Decoder.decode`](#Decode
 import Decode, { Decoder, DecodeResult, DecodeError } from 'decode-json'
 
 const ageDecoder: Decoder<number> = Decode.field('age').int
-const badResult = ageDecoder.decode('oops') // == { error: { type: 'EXPECT_OBJECT', source: 'oops' } }
+const badResult = ageDecoder.decode('oops')
+// == { error: { type: 'EXPECT_OBJECT', source: 'oops' } }
 const goodResult = ageDecoder.decode({ age: 27 }) // == { value: 27 }
 ```
 
