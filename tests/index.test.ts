@@ -28,9 +28,9 @@ test('Decode.index().of', t => {
   t.deepEqual(_0.decode([0, 1]).error, AtIndex(1, ExpectString(1)))
 })
 
-test('Decode.index().optional.of', t => {
+test('Decode.index().optional.int', t => {
   // Decode<number | null>
-  const _0 = Decode.index(1).optional.of(Decode.int)
+  const _0 = Decode.index(1).optional.int
 
   t.is(_0.decode([0, null]).value, null)
   t.is(_0.decode([0, undefined]).value, null)
@@ -66,9 +66,9 @@ test('Decode.optional.index().of', t => {
   )
 })
 
-test('Decode.optional.index().optional.of', t => {
+test('Decode.optional.index().optional.boolean', t => {
   // Decode<boolean | null>
-  const _0 = Decode.optional.index(1).optional.of(Decode.boolean)
+  const _0 = Decode.optional.index(1).optional.boolean
 
   t.is(_0.decode(undefined).value, null)
   t.is(_0.decode(null).value, null)
@@ -99,9 +99,9 @@ test('Decode.index().index().of', t => {
   )
 })
 
-test('Decode.index().index().optional.of', t => {
+test('Decode.index().index().optional.string', t => {
   // Decoder<string | null>
-  const _0 = Decode.index(0).index(1).optional.of(Decode.string)
+  const _0 = Decode.index(0).index(1).optional.string
 
   t.is(_0.decode([[1, undefined]]).value, null)
   t.is(_0.decode([[1, null]]).value, null)
@@ -147,7 +147,7 @@ test('Decode.optional.index().index().of', t => {
 
 test('Decode.optional.index().index().optional.of', t => {
   // Decoder<boolean | null>
-  const _0 = Decode.optional.index(0).index(1).optional.of(Decode.boolean)
+  const _0 = Decode.optional.index(0).index(1).optional.boolean
 
   t.is(_0.decode(undefined).value, null)
   t.is(_0.decode(null).value, null)
@@ -176,12 +176,9 @@ test('Decode.optional.index().optional.index().of', t => {
   )
 })
 
-test('Decode.optional.index().optional.index().optional.of', t => {
+test('Decode.optional.index().optional.index().optional.string', t => {
   // Decoder<string | null>
-  const _0 = Decode.optional
-    .index(0)
-    .optional.index(1)
-    .optional.of(Decode.string)
+  const _0 = Decode.optional.index(0).optional.index(1).optional.string
 
   t.is(_0.decode(undefined).value, null)
   t.is(_0.decode(null).value, null)
@@ -205,9 +202,9 @@ test('Decode.index().field().index().of', t => {
   t.is(_0.decode([{ _0: [null, 'str'] }]).value, 'str')
 })
 
-test('Decode.index().field().index().optional.of', t => {
+test('Decode.index().field().index().optional.float', t => {
   // Decoder<number | null>
-  const _0 = Decode.index(0).field('_0').index(1).optional.of(Decode.float)
+  const _0 = Decode.index(0).field('_0').index(1).optional.float
 
   t.is(_0.decode([{ _0: [null, undefined] }]).value, null)
   t.is(_0.decode([{ _0: [null, null] }]).value, null)
@@ -244,13 +241,10 @@ test('Decode.optional.index().field().index().of', t => {
   t.is(_0.decode([{ _0: [null, 'str'] }]).value, 'str')
 })
 
-test('Decode.optional.index().optional.field().optional.index().optional.of', t => {
+test('Decode.optional.index().optional.field().optional.index().optional.string', t => {
   // Decoder<string | null>
-  const _0 = Decode.optional
-    .index(0)
-    .optional.field('_0')
-    .optional.index(1)
-    .optional.of(Decode.string)
+  const _0 = Decode.optional.index(0).optional.field('_0').optional.index(1)
+    .optional.string
 
   t.is(_0.decode(undefined).value, null)
   t.is(_0.decode(null).value, null)

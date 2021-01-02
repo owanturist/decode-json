@@ -148,11 +148,17 @@ interface Node {
 
 const nodeDecoder: Decoder<Node> = Decode.shape({
   key: Decode.field('k').int,
-  left: Decode.field('l').optional.lazy(() => nodeDecoder),
-  right: Decode.field('r').optional.lazy(() => nodeDecoder)
+  left: Decode.field('l').oneOf([
+    Decode.exact(null),
+    Decode.lazy(() => nodeDecoder)
+  ]),
+  right: Decode.field('r').oneOf([
+    Decode.exact(null),
+    Decode.lazy(() => nodeDecoder)
+  ])
 })
 
-test('Decode.optional.lazy()', t => {
+test('Decode.lazy() with nullable', t => {
   // Decoder<Node>
   const _0 = nodeDecoder
 
