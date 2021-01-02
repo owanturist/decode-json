@@ -6,8 +6,6 @@ Using TypeScript is a great way to prevent some bugs during compile time but not
 
 As a little attempt to workaround the issue we can try to protect our programs from unexpected data to come. To do so we should be able to explain what data we expect and how it should be transformed so an application can use it.
 
-This package helps you to convert JSON or unknown values to TypeScript safe structures.
-
 ## Installation
 
 ```bash
