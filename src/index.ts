@@ -616,10 +616,10 @@ interface DecodePath<X extends boolean> {
 
   lazy: MakeLazy<X>
 
-  of<T>(decoder: Decoder<T>): Decoder<X extends true ? T : null | T>
-
   field: MakeField<X>
   index: MakeIndex<X>
+
+  of<T>(decoder: Decoder<T>): Decoder<X extends true ? T : null | T>
 }
 
 export type RequiredDecodePath = DecodePath<true>

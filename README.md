@@ -56,7 +56,6 @@ const characterDecoder = Decode.shape({
 
 const response = await fetch('https://swapi.dev/api/people/1')
 const data = await response.json()
-const decodeResult = characterDecoder.decode(response)
 ```
 
 The decoder above does next steps:
@@ -70,30 +69,32 @@ The decoder above does next steps:
 If a response reflects our expectations so the results for `swapi.dev/api/people/1` will look like:
 
 ```ts
-const decodeResult = {
-  value: {
-    name: 'Luke Skywalker',
-    birthYear: '19BBY',
-    height: 172,
-    mass: 77
-  }
-}
+characterDecoder.decode(data)
+// == {
+//   value: {
+//     name: 'Luke Skywalker',
+//     birthYear: '19BBY',
+//     height: 172,
+//     mass: 77
+//   }
+// }
 ```
 
 But as soon as one of the 1-4 steps fails you will get a detailed report why it happened. Let's say the server sends birth height as a formatted string with a unit for some reason. Here is what you'll get when `"172"` string becomes `172 cm` number:
 
 ```ts
-const decodeResult = {
-  error: {
-    type: 'IN_FIELD',
-    field: 'height',
-    error: {
-      type: 'FAILURE',
-      message: 'Could not parse "172 cm" as a float',
-      source: '172 cm'
-    }
-  }
-}
+characterDecoder.decode(data)
+// == {
+//   error: {
+//     type: 'IN_FIELD',
+//     field: 'height',
+//     error: {
+//       type: 'FAILURE',
+//       message: 'Could not parse "172 cm" as a float',
+//       source: '172 cm'
+//     }
+//   }
+// }
 ```
 
 And the trick is that by using a decoder a developer assumes that decode result might be either succeed or failed but not blindly trust that with `200` status code you'll get a valid data. So there is no way for the developer to ignore the awareness of failure but only handle the case somehow. Is not it an amazing concept?
@@ -110,6 +111,30 @@ import Decode, { Decoder, DecodeResult, DecodeError } from 'decode-json'
 const ageDecoder: Decoder<number> = Decode.field('age').int
 const badResult = ageDecoder.decode('oops') // == { error: { type: 'EXPECT_OBJECT', source: 'oops' } }
 const goodResult = ageDecoder.decode({ age: 27 }) // == { value: 27 }
+```
+
+It's recommended to avoid destructuring assignment for `DecodeResult` because TypeScript won't help you with error handling:
+
+```ts
+const { error, value } = ageDecoder.decode({ age: 27 })
+
+if (error) {
+  showError(error)
+} else {
+  showAge(value) // TS complains with "Object is possibly 'undefined'"
+}
+```
+
+To workaround the issue just don't use destructuring assignment:
+
+```ts
+const ageResult = ageDecoder.decode({ age: 27 })
+
+if (ageResult.error) {
+  showError(ageResult.error)
+} else {
+  showAge(ageResult.value) // no complains here
+}
 ```
 
 ### `Decoder`
@@ -286,6 +311,23 @@ const pointDecoder = Decode.shape({
   x: Decode.field('axis_x').float,
   y: Decode.field('axis_y').float
 })
+
+pointDecoder.decode({
+  type: 'LINE',
+  x0: 1.2,
+  y0: 3.4,
+  x1: 5.6,
+  x1: 7.8
+}).error
+// == {
+//   type: 'IN_FIELD',
+//   name: 'type',
+//   error: {
+//     type: 'EXPECT_EXACT',
+//     value: 'POINT',
+//     source: 'LINE'
+//   }
+// }
 ```
 
 Might be used with [`Decode.oneOf`](#DecodeOneOf) to build enum decoders:
@@ -569,78 +611,6 @@ pointDecoder.decode({
 
 > You also notice that tuple's segments does describe any path fragments for assigned decoders - these are only destinations of decoded values.
 
-### `Decode.field`
-
-Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
-
-```ts
-import Decode, { RequiredDecodePath } from 'decode-json'
-
-const currentUserPath: RequiredDecodePath = Decode.field('current_user')
-const currentUserIdPath: RequiredDecodePath = currentUserPath.field('id')
-
-currentUserIdPath.string.decode({
-  current_user: {
-    id: 'kjn32',
-    name: 'Daria'
-  }
-}).value // == 'kjn32'
-
-currentUserIdPath.string.decode({
-  current_user: {
-    id: 2302,
-    name: 'Daria'
-  }
-}).error
-// == {
-//   type: 'IN_FIELD',
-//   name: 'current_user',
-//   error: {
-//     type: 'IN_FIELD',
-//     name: 'id',
-//     error: {
-//       type: 'EXPECT_STRING',
-//       source: 2302
-//     }
-//   }
-// }
-```
-
-### `Decode.index`
-
-Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
-
-```ts
-import Decode, { RequiredDecodePath } from 'decode-json'
-
-const secondPointPath: RequiredDecodePath = Decode.index(1)
-const secondPointXPath: RequiredDecodePath = secondPointPath.index(0)
-
-secondPointXPath.float.decode([
-  [0.32, 1.03],
-  [8.79, 7.54],
-  [2.93, 4.13]
-]).value // == 8.79
-
-currentUserIdPath.string.decode([
-  ['0.32', '1.03'],
-  ['8.79', '7.54'],
-  ['2.93', '4.13']
-]).error
-// == {
-//   type: 'AT_INDEX',
-//   position: 1',
-//   error: {
-//     type: 'AT_INDEX',
-//     position: 0',
-//     error: {
-//       type: 'EXPECT_FLOAT',
-//       source: '8.79'
-//     }
-//   }
-// }
-```
-
 ### `Decode.oneOf`
 
 Try a bunch of different decoders. This can be useful if the values may come in a couple different formats.
@@ -724,13 +694,13 @@ userDecoder.decode({
 // }
 
 userDecoder.decode({
-  uuid: 'dklasj23',
+  uuid: 'uuid-id-is-here',
   username: 'Ross',
   isActive: true,
   age: 32
 }).value
 // == {
-//   id: 'dklasj23',
+//   id: 'uuid-id-is-here',
 //   nickname: 'Ross',
 //   active: true,
 //   age: 32
@@ -902,6 +872,464 @@ pointDecoder.decode([0.31, 8.17]).value // == { x: 0.31, y: 8.17, z: 0 }
 
 > _Note_: see [`Decode.oneOf`](#DecodeOneOf) and [`Decoder.chain`](#DecoderChain) for more examples.
 
+### `Decode.field`
+
+Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
+
+```ts
+import Decode, { RequiredDecodePath } from 'decode-json'
+
+const currentUserPath: RequiredDecodePath = Decode.field('current_user')
+```
+
+### `Decode.index`
+
+Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
+
+```ts
+import Decode, { RequiredDecodePath } from 'decode-json'
+
+const secondPointPath: RequiredDecodePath = Decode.index(1)
+```
+
+### `RequiredDecodePath`
+
+It provides an API to build decoders for some specific path described with [`Decoder.field`](#DecoderField) and [`Decoder.index`](#DecoderIndex):
+
+```ts
+import Decode from 'decode-json'
+
+const pointDecoder = Decode.tuple(
+  Decode.field('x').float,
+  Decode.field('y').float
+)
+
+Decode.field('center').of(pointDecoder).decode([]).error
+// == {
+//   type: 'EXPECT_OBJECT',
+//   source: []
+// }
+
+Decode.field('center').of(pointDecoder).decode({}).error
+// == {
+//   type: 'REQUIRED_FIELD',
+//   name: 'center',
+//   source: {}
+// }
+
+Decode.field('center')
+  .of(pointDecoder)
+  .decode({
+    center: { x: 1.2 }
+  }).error
+// == {
+//   type: 'IN_FIELD',
+//   name: 'center',
+//   error: {
+//     type: 'REQUIRED_FIELD',
+//     name: 'y',
+//     source: { x: 1.2 }
+//   }
+// }
+
+Decode.field('center')
+  .of(pointDecoder)
+  .decode({
+    center: { x: 1.2, y: 3.4 }
+  }).value // == [ 1.2, 3.4 ]
+```
+
+The same idea works for `RequiredDecodePath.index`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.index(0).int.decode({}).error
+// == {
+//   type: 'EXPECT_ARRAY',
+//   source: {}
+// }
+
+Decode.index(0).int.decode([]).error
+// == {
+//   type: 'REQUIRED_INDEX',
+//   position: 0,
+//   source: []
+// }
+
+Decode.index(0).int.decode([null]).error
+// == {
+//   type: 'AT_INDEX',
+//   position: 0,
+//   error: { type: 'EXPECT_INT', source: null }
+// }
+
+Decode.index(0).int.decode([42]).value // == 42
+```
+
 ### `Decode.optional`
 
-Creates [`OptionalDecoder`](#OptionalDecoder) instance.
+Creates `OptionalDecoder` instance.
+
+#### `OptionalDecoder.string`
+
+Behaves exactly as [`Decode.string`](#DecodeString) but decodes `null` and `undefined` as `null`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.string.decode(1234).error
+// == {
+//   type: 'OPTIONAL',
+//   error: { type: 'EXPECT_STRING', source: 1234 }
+// }
+Decode.optional.string.decode(null).value // == null
+Decode.optional.string.decode(undefined).value // == null
+Decode.optional.string.decode('hi').value // == 'hi'
+```
+
+#### `OptionalDecoder.boolean`
+
+Behaves exactly as [`Decode.boolean`](#DecodeBoolean) but decodes `null` and `undefined` as `null`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.boolean.decode(1234).error
+// == {
+//   type: 'OPTIONAL',
+//   error: { type: 'EXPECT_BOOLEAN', source: 1234 }
+// }
+Decode.optional.boolean.decode(null).value // == null
+Decode.optional.boolean.decode(undefined).value // == null
+Decode.optional.boolean.decode(true).value // == true
+```
+
+#### `OptionalDecoder.int`
+
+Behaves exactly as [`Decode.int`](#DecodeInt) but decodes `null` and `undefined` as `null`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.int.decode(12.3).error
+// == {
+//   type: 'OPTIONAL',
+//   error: { type: 'EXPECT_INT', source: 12.3 }
+// }
+Decode.optional.int.decode(null).value // == null
+Decode.optional.int.decode(undefined).value // == null
+Decode.optional.int.decode(1234).value // == 1234
+```
+
+#### `OptionalDecoder.float`
+
+Behaves exactly as [`Decode.float`](#DecodeFloat) but decodes `null` and `undefined` as `null`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.float.decode(false).error
+// == {
+//   type: 'OPTIONAL',
+//   error: { type: 'EXPECT_FLOAT', source: false }
+// }
+Decode.optional.float.decode(null).value // == null
+Decode.optional.float.decode(undefined).value // == null
+Decode.optional.float.decode(12.3).value // == 12.3
+```
+
+#### `OptionalDecoder.list`
+
+Behaves exactly as [`Decode.list`](#DecodeList) but decodes `null` and `undefined` as `null`:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const idsDecoder: Decoder<null | Array<number>> = Decode.optional.list(
+  Decode.int
+)
+
+idsDecoder.decode(null).value // == null
+idsDecoder.decode(undefined).value // == null
+idsDecoder.decode([0, 2, 3]).value // == [ 0, 2, 3 ]
+```
+
+Note that `optional` statement here is assigned to `list` decoder, but not to it's items, so this one will fail:
+
+```ts
+idsDecoder.decode([ 0, null, 2, 3 ]).error
+{
+  type: 'OPTIONAL',
+  error: {
+    type: 'AT_INDEX',
+    position: 1,
+    error: { type: 'EXPECT_INT', source: null }
+  }
+}
+```
+
+If you expect both array and the items to be optional you can do it like that:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const idsDecoder: Decoder<null | Array<null | number>> = Decode.optional.list(
+  Decode.optional.int
+)
+
+idsDecoder.decode(null).value // === null
+idsDecoder.decode([0, null, 2, 3]).value // === [ 0, null, 2, 3 ]
+```
+
+#### `OptionalDecoder.record`
+
+Behaves exactly as [`Decode.record`](#DecodeRecord) but decodes `null` and `undefined` as `null`:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const blackListDecoder: Decoder<null | Record<
+  string,
+  boolean
+>> = Decode.optional.record(Decode.boolean)
+
+blackListDecoder.decode(null).value // == null
+blackListDecoder.decode(undefined).value // == null
+blackListDecoder.decode({
+  John: false,
+  Emma: true,
+  Tom: true
+}).value
+// == {
+//   John: false,
+//   Emma: true,
+//   Tom: true
+// }
+```
+
+Note that `optional` statement here is assigned to `record` decoder, but not it's items, so this one will fail:
+
+```ts
+blackListDecoder.decode({
+  John: false,
+  Emma: true,
+  Tom: true,
+  Adam: null
+}).error
+// == {
+//   type: 'OPTIONAL',
+//   error: {
+//     type: 'IN_FIELD',
+//     name: 'Adam',
+//     error: { type: 'EXPECT_BOOLEAN', source: null }
+//   }
+// }
+```
+
+If you expect both object and the items to be optional you can do it like that:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const blackListDecoder: Decoder<null | Record<
+  string,
+  null | boolean
+>> = Decode.optional.record(Decode.boolean)
+
+blackListDecoder.decode(null).value // === null
+blackListDecoder.decode({
+  John: false,
+  Emma: true,
+  Tom: true,
+  Adam: null
+}).value
+// == {
+//   John: false,
+//   Emma: true,
+//   Tom: true,
+//   Adam: null
+// }
+```
+
+#### `OptionalDecoder.keyValue`
+
+Behaves exactly as [`Decode.keyValue`](#DecodeKeyValue) but decodes `null` and `undefined` as `null`:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const blackListDecoder: Decoder<null | Array<
+  [string, boolean]
+>> = Decode.optional.keyValue(Decode.boolean)
+
+blackListDecoder.decode(null).value // == null
+blackListDecoder.decode(undefined).value // == null
+blackListDecoder.decode({
+  John: false,
+  Emma: true,
+  Tom: true
+}).value
+// == [
+//   [ 'John', false ],
+//   [ 'Emma', true ],
+//   [ 'Tom', true ]
+// ]
+```
+
+Note that `optional` statement here is assigned to `keyValue` decoder, but not to it's items, so this one will fail:
+
+```ts
+blackListDecoder.decode({
+  John: false,
+  Emma: true,
+  Tom: true,
+  Adam: null
+}).error
+// == {
+//   type: 'OPTIONAL',
+//   error: {
+//     type: 'IN_FIELD',
+//     name: 'Adam',
+//     error: { type: 'EXPECT_BOOLEAN', source: null }
+//   }
+// }
+```
+
+If you expect both object and the items to be optional you can do it like that:
+
+```ts
+import Decode, { Decoder } from 'decode-json'
+
+const blackListDecoder: Decoder<null | Array<
+  [string, null | boolean]
+>> = Decode.optional.keyValue(Decode.optional.boolean)
+
+blackListDecoder.decode(null).value // === null
+blackListDecoder.decode({
+  John: false,
+  Emma: true,
+  Tom: true,
+  Adam: null
+}).value
+// == [
+//   [ 'John', false ],
+//   [ 'Emma', true ],
+//   [ 'Tom', true ],
+//   [ 'Adam', null ]
+// ]
+```
+
+#### `OptionalDecoder.field`
+
+Creates an [`OptionalDecodePath`](#OptionalDecodePath) instance.
+
+```ts
+import Decode, { OptionalDecodePath } from 'decode-json'
+
+const nameFieldDecoder: OptionalDecodePath = Decode.optional.field('name')
+```
+
+#### `OptionalDecoder.index`
+
+Creates an [`OptionalDecodePath`](#OptionalDecodePath) instance.
+
+```ts
+import Decode, { OptionalDecodePath } from 'decode-json'
+
+const headDecoder: OptionalDecodePath = Decode.optional.index(0)
+```
+
+### `OptionalDecodePath`
+
+It provides an API to build decoders for some specific path described with [`OptionalDecoder.field`](#OptionalDecoderField) and [`OptionalDecoder.index`](#OptionalDecoderIndex):
+
+```ts
+import Decode from 'decode-json'
+
+const pointDecoder = Decode.tuple(
+  Decode.field('x').float,
+  Decode.field('y').float
+)
+
+Decode.optional
+  .field('center')
+  .of(pointDecoder)
+  .decode({
+    center: { x: 1.2 }
+  }).error
+// == {
+//   type: 'OPTIONAL',
+//   error: {
+//     type: 'IN_FIELD',
+//     name: 'center',
+//     error: {
+//       type: 'REQUIRED_FIELD',
+//       name: 'y',
+//       source: { x: 1.2 }
+//     }
+//   }
+// }
+
+Decode.optional
+  .field('center')
+  .of(pointDecoder)
+  .decode({
+    center: { x: 1.2, y: 3.4 }
+  }).value // == [ 1.2, 3.4 ]
+```
+
+Note that `optional` statement here is assigned to `.field` or `.index`, so this one will fail:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.field('name').string.decode({ name: null }).error
+{
+  type: 'OPTIONAL',
+  error: {
+    type: 'IN_FIELD',
+    name: 'name',
+    error: { type: 'EXPECT_STRING', source: null }
+  }
+}
+```
+
+But won't for this inputs:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.field('name').string.decode(null).value // == null
+Decode.optional.field('name').string.decode({}).value // == null
+Decode.optional.field('name').string.decode({ name: 'Peter' }).value // == 'Peter'
+```
+
+Another words are `OptionalDecodePath.field` expects that object with field is optional, but not a value of the field. If you expect the value is optional too you do:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.field('name').optional.string.decode({ name: null }).value // == null
+```
+
+The same idea works for `OptionalDecodePath.index`:
+
+```ts
+import Decode from 'decode-json'
+
+Decode.optional.index(0).int.decode(null).value // == null
+Decode.optional.index(0).int.decode([]).value // == null
+Decode.optional.index(0).int.decode([42]).value // == 42
+Decode.optional.index(0).int.decode([null]).error
+// == {
+//   type: 'OPTIONAL',
+//   error: {
+//     type: 'AT_INDEX',
+//     position: 0,
+//     error: { type: 'EXPECT_INT', source: null }
+//   }
+// }
+
+Decode.optional.index(0).optional.int.decode([null]).value // == null
+```
