@@ -58,6 +58,7 @@ const characterDecoder = Decode.shape({
 
 const response = await fetch('https://swapi.dev/api/people/1')
 const data = await response.json()
+const characterResult = characterDecoder.decode(data)
 ```
 
 The decoder above does next steps:
