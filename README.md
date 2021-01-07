@@ -81,7 +81,7 @@ characterDecoder.decode(data)
 // }
 ```
 
-But as soon as one of the 1-4 steps fails you will get a detailed report why it happened. Let's say the server sends birth height as a formatted string with a unit for some reason. Here is what you'll get when `"172"` string becomes `172 cm` number:
+But as soon as one of the 1-4 steps fails you will get a detailed report why it happened. Let's say the server sends birth height as a formatted string with a unit for some reason. Here is what you'll get when `"172"` string becomes `"172 cm"`:
 
 ```ts
 characterDecoder.decode(data)
@@ -102,65 +102,65 @@ And the trick is that by using a decoder a developer assumes that decode result 
 
 ## API
 
-- [`DecodeResult`](#DecodeResult)
-- [`Decoder`](#Decoder)
-  - [`Decoder.map`](#DecoderMap)
-  - [`Decoder.chain`](#DecoderChain)
-  - [`Decoder.decode`](#DecoderDecode)
-  - [`Decoder.decodeJson`](#DecoderDecodeJson)
+- [`DecodeResult`](#decoderesult)
+- [`Decoder`](#decoder)
+  - [`Decoder.map`](#decodermap)
+  - [`Decoder.chain`](#decoderchain)
+  - [`Decoder.decode`](#decoderdecode)
+  - [`Decoder.decodeJson`](#decoderdecodejson)
 - `Decode`
-  - [`Decode.string`](#DecodeString)
-  - [`Decode.boolean`](#DecodeBoolean)
-  - [`Decode.int`](#DecodeInt)
-  - [`Decode.float`](#DecodeFloat)
-  - [`Decode.unknown`](#DecodeUnknown)
-  - [`Decode.exact`](#DecodeExact)
-  - [`Decode.record`](#DecodeRecord)
-  - [`Decode.list`](#DecodeList)
-  - [`Decode.keyValue`](#DecodeKeyValue)
-  - [`Decode.record`](#DecodeRecord)
-  - [`Decode.tuple`](#DecodeTuple)
-  - [`Decode.oneOf`](#DecodeOneOf)
-  - [`Decode.lazy`](#DecodeLazy)
-  - [`Decode.fail`](#DecodeFail)
-  - [`Decode.succeed`](#DecodeSucceed)
-  - [`Decode.field`](#DecodeField)
-  - [`Decode.index`](#DecodeIndex)
-  - [`Decode.optional`](#DecodeOptional)
+  - [`Decode.string`](#decodestring)
+  - [`Decode.boolean`](#decodeboolean)
+  - [`Decode.int`](#decodeint)
+  - [`Decode.float`](#decodefloat)
+  - [`Decode.unknown`](#decodeunknown)
+  - [`Decode.exact`](#decodeexact)
+  - [`Decode.record`](#decoderecord)
+  - [`Decode.list`](#decodelist)
+  - [`Decode.keyValue`](#decodekeyvalue)
+  - [`Decode.record`](#decoderecord)
+  - [`Decode.tuple`](#decodetuple)
+  - [`Decode.oneOf`](#decodeoneof)
+  - [`Decode.lazy`](#decodelazy)
+  - [`Decode.fail`](#decodefail)
+  - [`Decode.succeed`](#decodesucceed)
+  - [`Decode.field`](#decodefield)
+  - [`Decode.index`](#decodeindex)
+  - [`Decode.optional`](#decodeoptional)
 - `DecodeOptional`
-  - [`DecodeOptional.string`](#DecodeOptionalString)
-  - [`DecodeOptional.boolean`](#DecodeOptionalBoolean)
-  - [`DecodeOptional.int`](#DecodeOptionalInt)
-  - [`DecodeOptional.float`](#DecodeOptionalFloat)
-  - [`DecodeOptional.list`](#DecodeOptionalList)
-  - [`DecodeOptional.record`](#DecodeOptionalRecord)
-  - [`DecodeOptional.keyValue`](#DecodeOptionalKeyValue)
-  - [`DecodeOptional.field`](#DecodeOptionalField)
-  - [`DecodeOptional.index`](#DecodeOptionalIndex)
-- [`RequiredDecodePath`](#RequiredDecodePath)
-- [`OptionalDecodePath`](#OptionalDecodePath)
-- [`DecodeError`](#DecodeError)
-  - [`EXPECT_STRING`](#EXPECT_STRING)
-  - [`EXPECT_BOOLEAN`](#EXPECT_BOOLEAN)
-  - [`EXPECT_FLOAT`](#EXPECT_FLOAT)
-  - [`EXPECT_INT`](#EXPECT_INT)
-  - [`EXPECT_EXACT`](#EXPECT_EXACT)
-  - [`EXPECT_ARRAY`](#EXPECT_ARRAY)
-  - [`EXPECT_OBJECT`](#EXPECT_OBJECT)
-  - [`FAILURE`](#FAILURE)
-  - [`REQUIRED_INDEX`](#REQUIRED_INDEX)
-  - [`REQUIRED_FIELD`](#REQUIRED_FIELD)
-  - [`AT_INDEX`](#AT_INDEX)
-  - [`IN_FIELD`](#IN_FIELD)
-  - [`OPTIONAL`](#OPTIONAL)
-  - [`ONE_OF`](#ONE_OF)
-  - [`RUNTIME_EXCEPTION`](#RUNTIME_EXCEPTION)
-- [`DecodeJsonError`](#DecodeJsonError)
-  - [`INVALID_JSON`](#INVALID_JSON)
+  - [`DecodeOptional.string`](#decodeoptionalstring)
+  - [`DecodeOptional.boolean`](#decodeoptionalboolean)
+  - [`DecodeOptional.int`](#decodeoptionalint)
+  - [`DecodeOptional.float`](#decodeoptionalfloat)
+  - [`DecodeOptional.list`](#decodeoptionallist)
+  - [`DecodeOptional.record`](#decodeoptionalrecord)
+  - [`DecodeOptional.keyValue`](#decodeoptionalkeyvalue)
+  - [`DecodeOptional.field`](#decodeoptionalfield)
+  - [`DecodeOptional.index`](#decodeoptionalindex)
+- [`RequiredDecodePath`](#requireddecodepath)
+- [`OptionalDecodePath`](#optionaldecodepath)
+- [`DecodeError`](#decodeerror)
+  - [`EXPECT_STRING`](#expect_string)
+  - [`EXPECT_BOOLEAN`](#expect_boolean)
+  - [`EXPECT_FLOAT`](#expect_float)
+  - [`EXPECT_INT`](#expect_int)
+  - [`EXPECT_EXACT`](#expect_exact)
+  - [`EXPECT_ARRAY`](#expect_array)
+  - [`EXPECT_OBJECT`](#expect_object)
+  - [`FAILURE`](#failure)
+  - [`REQUIRED_INDEX`](#required_index)
+  - [`REQUIRED_FIELD`](#required_field)
+  - [`AT_INDEX`](#at_index)
+  - [`IN_FIELD`](#in_field)
+  - [`OPTIONAL`](#optional)
+  - [`ONE_OF`](#one_of)
+  - [`RUNTIME_EXCEPTION`](#runtime_exception)
+- [`DecodeJsonError`](#decodejsonerror)
+  - [`INVALID_JSON`](#invalid_json)
 
 ### `DecodeResult`
 
-This is what you always get as result of running both [`Decoder.decode`](#DecoderDecode) and [`Decoder.decodeJson`](#DecoderDecodeJson) methods. It can be either `{ value: T }` when a decoding has been successfully passed or `{ error: E }` when any of decode, json parse or runtime error occur.
+This is what you always get as result of running both [`Decoder.decode`](#decoderdecode) and [`Decoder.decodeJson`](#decoderdecodejson) methods. It can be either `{ value: T }` when a decoding has been successfully passed or `{ error: E }` when any of decode, json parse or runtime error occur.
 
 ```ts
 import Decode, { Decoder, DecodeResult, DecodeError } from 'decode-json'
@@ -275,7 +275,7 @@ Decode.boolean.decode(false).value // == false
 
 #### `Decoder.decodeJson`
 
-Runs a decoder on JSON string. Does the same as [`Decoder.decode`](#DecoderDecode) but parses JSON first:
+Runs a decoder on JSON string. Does the same as [`Decoder.decode`](#decoderdecode) but parses JSON first:
 
 ```ts
 import Decode from 'decode-json'
@@ -388,7 +388,7 @@ pointDecoder.decode({
 // }
 ```
 
-Might be used with [`Decode.oneOf`](#DecodeOneOf) to build enum decoders:
+Might be used with [`Decode.oneOf`](#decodeoneof) to build enum decoders:
 
 ```ts
 import Decode, { Decoder } from 'decode-json'
@@ -637,7 +637,7 @@ Combines decoded values to the corresponding tuple segments:
 ```ts
 import Decode, { Decoder } from 'decode-json'
 
-const pointDecoder: Decoder<[string, number]> = Decode.tuple(
+const pointDecoder: Decoder<[number, number]> = Decode.tuple(
   Decode.field('x').float,
   Decode.field('y').float
 )
@@ -862,7 +862,7 @@ commentDecoder.decode({
 
 ### `Decode.fail`
 
-Ignores a decoding value and make the decoder fail. This is handy when used with [`Decode.oneOf`](#DecodeOneOf) or [`Decoder.chain`](#DecoderChain) where you want to give a custom error message in some cases.
+Ignores a decoding value and make the decoder fail. This is handy when used with [`Decode.oneOf`](#decodeoneof) or [`Decoder.chain`](#decoderchain) where you want to give a custom error message in some cases.
 
 ```ts
 import Decode, { Decoder } from 'decode-json'
@@ -885,11 +885,11 @@ positiveIntDecoder.decode(-1).error
 // }
 ```
 
-> _Note_: see [`Decode.oneOf`](#DecodeOneOf) and [`Decoder.chain`](#DecoderChain) for more examples.
+> _Note_: see [`Decode.oneOf`](#decodeoneof) and [`Decoder.chain`](#decoderchain) for more examples.
 
 ### `Decode.succeed`
 
-Ignores a decoding value and produce a certain value. Handy when used with [`Decode.oneOf`](#DecodeOneOf) or [`Decoder.chain`](#DecoderChain).
+Ignores a decoding value and produce a certain value. Handy when used with [`Decode.oneOf`](#decodeoneof) or [`Decoder.chain`](#decoderchain).
 
 ```ts
 import Decode, { Decoder } from 'decode-json'
@@ -924,11 +924,11 @@ const pointDecoder = Decoder.shape({
 pointDecoder.decode([0.31, 8.17]).value // == { x: 0.31, y: 8.17, z: 0 }
 ```
 
-> _Note_: see [`Decode.oneOf`](#DecodeOneOf) and [`Decoder.chain`](#DecoderChain) for more examples.
+> _Note_: see [`Decode.oneOf`](#decodeoneof) and [`Decoder.chain`](#decoderchain) for more examples.
 
 ### `Decode.field`
 
-Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
+Creates a [`RequiredDecodePath`](#requireddecodepath) instance.
 
 ```ts
 import Decode, { RequiredDecodePath } from 'decode-json'
@@ -938,7 +938,7 @@ const currentUserPath: RequiredDecodePath = Decode.field('current_user')
 
 ### `Decode.index`
 
-Creates a [`RequiredDecodePath`](#RequiredDecodePath) instance.
+Creates a [`RequiredDecodePath`](#requireddecodepath) instance.
 
 ```ts
 import Decode, { RequiredDecodePath } from 'decode-json'
@@ -952,7 +952,7 @@ Creates `DecodeOptional` instance.
 
 ### `DecodeOptional.string`
 
-Behaves exactly as [`Decode.string`](#DecodeString) but decodes `null` and `undefined` as `null`:
+Behaves exactly as [`Decode.string`](#decodestring) but decodes `null` and `undefined` as `null`:
 
 ```ts
 import Decode from 'decode-json'
@@ -969,7 +969,7 @@ Decode.optional.string.decode('hi').value // == 'hi'
 
 ### `DecodeOptional.boolean`
 
-Behaves exactly as [`Decode.boolean`](#DecodeBoolean) but decodes `null` and `undefined` as `null`:
+Behaves exactly as [`Decode.boolean`](#decodeboolean) but decodes `null` and `undefined` as `null`:
 
 ```ts
 import Decode from 'decode-json'
@@ -986,7 +986,7 @@ Decode.optional.boolean.decode(true).value // == true
 
 ### `DecodeOptional.int`
 
-Behaves exactly as [`Decode.int`](#DecodeInt) but decodes `null` and `undefined` as `null`:
+Behaves exactly as [`Decode.int`](#decodeint) but decodes `null` and `undefined` as `null`:
 
 ```ts
 import Decode from 'decode-json'
@@ -1003,7 +1003,7 @@ Decode.optional.int.decode(1234).value // == 1234
 
 ### `DecodeOptional.float`
 
-Behaves exactly as [`Decode.float`](#DecodeFloat) but decodes `null` and `undefined` as `null`:
+Behaves exactly as [`Decode.float`](#decodefloat) but decodes `null` and `undefined` as `null`:
 
 ```ts
 import Decode from 'decode-json'
@@ -1020,7 +1020,7 @@ Decode.optional.float.decode(12.3).value // == 12.3
 
 ### `DecodeOptional.list`
 
-Behaves exactly as [`Decode.list`](#DecodeList) but decodes `null` and `undefined` as `null`:
+Behaves exactly as [`Decode.list`](#decodelist) but decodes `null` and `undefined` as `null`:
 
 ```ts
 import Decode, { Decoder } from 'decode-json'
@@ -1063,7 +1063,7 @@ idsDecoder.decode([0, null, 2, 3]).value // === [ 0, null, 2, 3 ]
 
 ### `DecodeOptional.record`
 
-Behaves exactly as [`Decode.record`](#DecodeRecord) but decodes `null` and `undefined` as `null`:
+Behaves exactly as [`Decode.record`](#decoderecord) but decodes `null` and `undefined` as `null`:
 
 ```ts
 import Decode, { Decoder } from 'decode-json'
@@ -1133,7 +1133,7 @@ blackListDecoder.decode({
 
 ### `DecodeOptional.keyValue`
 
-Behaves exactly as [`Decode.keyValue`](#DecodeKeyValue) but decodes `null` and `undefined` as `null`:
+Behaves exactly as [`Decode.keyValue`](#decodekeyvalue) but decodes `null` and `undefined` as `null`:
 
 ```ts
 import Decode, { Decoder } from 'decode-json'
@@ -1201,7 +1201,7 @@ blackListDecoder.decode({
 
 ### `DecodeOptional.field`
 
-Creates an [`OptionalDecodePath`](#OptionalDecodePath) instance.
+Creates an [`OptionalDecodePath`](#optionaldecodepath) instance.
 
 ```ts
 import Decode, { OptionalDecodePath } from 'decode-json'
@@ -1211,7 +1211,7 @@ const nameFieldDecoder: OptionalDecodePath = Decode.optional.field('name')
 
 ### `DecodeOptional.index`
 
-Creates an [`OptionalDecodePath`](#OptionalDecodePath) instance.
+Creates an [`OptionalDecodePath`](#optionaldecodepath) instance.
 
 ```ts
 import Decode, { OptionalDecodePath } from 'decode-json'
@@ -1221,7 +1221,7 @@ const headDecoder: OptionalDecodePath = Decode.optional.index(0)
 
 ### `RequiredDecodePath`
 
-It provides an API to build decoders for some specific path described with [`Decoder.field`](#DecoderField) and [`Decoder.index`](#DecoderIndex):
+It provides an API to build decoders for some specific path described with [`Decoder.field`](#decoderfield) and [`Decoder.index`](#decoderindex):
 
 ```ts
 import Decode from 'decode-json'
@@ -1296,7 +1296,7 @@ Decode.index(0).int.decode([42]).value // == 42
 
 ### `OptionalDecodePath`
 
-It provides an API to build decoders for some specific path described with [`DecodeOptional.field`](#DecodeOptionalField) and [`DecodeOptional.index`](#DecodeOptionalIndex):
+It provides an API to build decoders for some specific path described with [`DecodeOptional.field`](#decodeoptionalfield) and [`DecodeOptional.index`](#decodeoptionalindex):
 
 ```ts
 import Decode from 'decode-json'
@@ -1390,7 +1390,7 @@ Decode.optional.index(0).optional.int.decode([null]).value // == null
 
 ### `DecodeError`
 
-A set of errors describe what went wrong during decoding of unknown value with [`Decoder.decode`](#DecoderDecode). The error consist of plain JavaScript data types such as strings, numbers, objects and arrays so it can be stringified to JSON without any information losses. It might be helpful for sending to tracking tools as part of report or to display friendly message in UI with [`error-to-human-readable.ts`](/src/error-to-human-readable.ts). You can always build your own functions for error formatting.
+A set of errors describe what went wrong during decoding of unknown value with [`Decoder.decode`](#decoderdecode). The error consist of plain JavaScript data types such as strings, numbers, objects and arrays so it can be stringified to JSON without any information losses. It might be helpful for sending to tracking tools as part of report or to display friendly message in UI with [`error-to-human-readable.ts`](/src/error-to-human-readable.ts). You can always build your own functions for error formatting.
 
 #### `EXPECT_STRING`
 
@@ -1602,7 +1602,7 @@ type FailureError = {
 }
 ```
 
-Occurs either when [`Decode.fail`](#DecodeFail) run into decoding or when key converting in [`Decode.keyValue`](#DecodeKeyValue) (or [`DecodeOptional.keyValue`](#DecodeOptionalKeyValue)) fails.
+Occurs either when [`Decode.fail`](#decodefail) run into decoding or when key converting in [`Decode.keyValue`](#decodekeyvalue) (or [`DecodeOptional.keyValue`](#decodeoptionalkeyvalue)) fails.
 
 ```ts
 import Decode from 'decode-json'
@@ -1655,7 +1655,7 @@ type RequiredIndexError = {
 }
 ```
 
-Occurs when [`Decode.index`](#DecodeIndex) could not reach an element at a required `position` of a `source` array.
+Occurs when [`Decode.index`](#decodeindex) could not reach an element at a required `position` of a `source` array.
 
 ```ts
 import Decode from 'decode-json'
@@ -1681,7 +1681,7 @@ type RequiredFieldError = {
 }
 ```
 
-Occurs when [`Decode.field`](#DecodeField) could not reach a field by `name` in a `source` object.
+Occurs when [`Decode.field`](#decodefield) could not reach a field by `name` in a `source` object.
 
 ```ts
 import Decode from 'decode-json'
@@ -1852,7 +1852,7 @@ type OneOfError = {
 }
 ```
 
-Occurs when none of [`Decode.oneOf`](#DecodeOneOf) decoders passes with `errors` from each of the decoders:
+Occurs when none of [`Decode.oneOf`](#decodeoneof) decoders passes with `errors` from each of the decoders:
 
 ```ts
 import Decode from 'decode-json'
@@ -1901,7 +1901,7 @@ Occurs when something unexpected happens while decoding is running so you should
 
 ### `DecodeJsonError`
 
-A set of errors describe what went wrong during decoding of JSON string with [`Decoder.decodeJson`](#DecoderDecodeJson). The set is a union of [`DecodeError`](#DecodeError) with one more specific error for parse json exception.
+A set of errors describe what went wrong during decoding of JSON string with [`Decoder.decodeJson`](#decoderdecodejson). The set is a union of [`DecodeError`](#decodeerror) with one more specific error for parse json exception.
 
 #### `INVALID_JSON`
 
@@ -1915,7 +1915,7 @@ type RuntimeException = {
 }
 ```
 
-Occurs when [`Decoder.decodeJson`](#DecoderDecodeJson) tries to decode invalid JSON string:
+Occurs when [`Decoder.decodeJson`](#decoderdecodejson) tries to decode invalid JSON string:
 
 ```ts
 import Decode from 'decode-json'
