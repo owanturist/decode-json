@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import Decode from '../src'
+import Decode from '../src/decode-json'
 
 test('Decoder.map()', t => {
   interface Person {
