@@ -1,4 +1,4 @@
-import { DecodeJsonError, DecodeError } from '.'
+import { DecodeJsonError, DecodeError } from './decode-json'
 
 const wrapFieldName = (name: string): string => {
   if (/^[a-z$_][0-9a-z$_]*$/i.test(name)) {

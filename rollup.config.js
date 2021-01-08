@@ -4,7 +4,7 @@ import minifyPrivatesTransformer from 'ts-transformer-minify-privates'
 import { terser } from 'rollup-plugin-terser'
 
 const input = {
-  'decode-json': 'src/index.ts',
+  'decode-json': 'src/decode-json.ts',
   'error-to-human-readable': 'src/error-to-human-readable.ts'
 }
 const extensions = ['.ts']
@@ -94,7 +94,7 @@ export default [
   ...[
     {
       name: 'Decode',
-      input: 'src/index.ts',
+      input: 'src/decode-json.ts',
       output: 'dist/decode-json.js'
     },
     {
@@ -123,7 +123,7 @@ export default [
   ...[
     {
       name: 'Decode',
-      input: 'src/index.ts',
+      input: 'src/decode-json.ts',
       output: 'dist/decode-json.min.js'
     },
     {
