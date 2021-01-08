@@ -1,8 +1,9 @@
-# JSON in TypeScript
+# decode-json
 
+![Coverage Status](https://img.shields.io/coveralls/github/owanturist/decode-json/master.svg)
 ![Minified + gzip](https://flat.badgen.net/bundlephobia/minzip/decode-json)
 ![Dependency count](https://flat.badgen.net/bundlephobia/dependency-count/decode-json)
-[![Known Vulnerabilities](https://snyk.io/test/github/owanturist/decode-json/badge.svg?style=flat-square)](https://snyk.io/test/github/owanturist/decode-json)
+![Known Vulnerabilities](https://snyk.io/test/github/owanturist/decode-json/badge.svg?style=flat-square)
 ![Types](https://flat.badgen.net/npm/types/decode-json)
 ![Total downloads](https://flat.badgen.net/npm/dt/decode-json)
 

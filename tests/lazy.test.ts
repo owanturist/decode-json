@@ -18,7 +18,7 @@ interface Message {
 
 const messageDecoder: Decoder<Message> = Decode.shape({
   content: Decode.field('con').string,
-  comments: Decode.field('com').list(Decode.lazy(() => messageDecoder))
+  comments: Decode.field('com').lazy(() => Decode.list(messageDecoder))
 })
 
 test('Decode.lazy()', t => {
