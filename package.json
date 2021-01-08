@@ -48,6 +48,7 @@
     "test": "ava",
     "test:watch": "npm test -- --watch",
     "test:coverage": "nyc ava",
+    "test:report": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint . --config=.eslintrc.prod.json --ext=js,ts",
     "prettify": "prettier . --write",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -74,6 +75,7 @@
     "@typescript-eslint/eslint-plugin": "^4.11.0",
     "@typescript-eslint/parser": "^4.11.0",
     "ava": "^3.14.0",
+    "coveralls": "^3.1.0",
     "eslint": "^7.16.0",
     "eslint-config-prettier": "^7.1.0",
     "eslint-plugin-ava": "^11.0.0",
