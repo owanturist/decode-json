@@ -1,8 +1,7 @@
 {
   "extends": "./tsconfig.dev.json",
   "compilerOptions": {
-    "sourceMap": true,
-    "declaration": true
+    "sourceMap": true
   },
   "include": ["./src/**/*.ts", "./tests/**/*.test.ts"]
 }

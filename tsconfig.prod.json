@@ -1,12 +1,4 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["./src/**/*.ts"],
-  "compilerOptions": {
-    "plugins": [
-      {
-        "transform": "ts-transformer-minify-privates",
-        "prefix": "__"
-      }
-    ]
-  }
+  "include": ["./src/**/*.ts"]
 }

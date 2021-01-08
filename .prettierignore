@@ -1,5 +1,9 @@
+es
+lib
+dist
+types
+
 node_modules
-build
 yarn.lock
 
 npm-debug.log*

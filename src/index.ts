@@ -754,7 +754,7 @@ const int: Decoder<number> = new PrimitiveDecoder(ExpectIntError, isInteger)
 
 const float: Decoder<number> = new PrimitiveDecoder(ExpectFloatError, isNumber)
 
-function fail(message: string): Decoder<never> {
+function fail<T = never>(message: string): Decoder<T> {
   return new FailDecoder(message)
 }
 
