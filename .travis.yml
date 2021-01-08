@@ -3,5 +3,7 @@ node_js:
   - stable
 
 script:
+  - yarn typecheck
+  - yarn package-check
   - yarn build
   - yarn test
