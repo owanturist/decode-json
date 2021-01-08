@@ -1,5 +1,11 @@
 # JSON in TypeScript
 
+![Minified + gzip](https://flat.badgen.net/bundlephobia/minzip/decode-json)
+![Dependency count](https://flat.badgen.net/bundlephobia/dependency-count/decode-json)
+[![Known Vulnerabilities](https://snyk.io/test/github/owanturist/decode-json/badge.svg?style=flat-square)](https://snyk.io/test/github/owanturist/decode-json)
+![Types](https://flat.badgen.net/npm/types/decode-json)
+![Total downloads](https://flat.badgen.net/npm/dt/decode-json)
+
 > The package you are about to use has been done under inspiration of [Elm lang](https://elm-lang.org/) and [elm/json](https://package.elm-lang.org/packages/elm/json/latest/) package particularly.
 
 Using TypeScript is a great way to prevent some bugs during compile time but nothing can save us from runtime exceptions. Today "height" field coming from the `GET /tallest-building` endpoint is a `number` and you call `.toFixed(2)` to format it but next day it becomes a preformatted `string` and the app crashes with `toFixed is not a function`. The same thing could happen when an application uses `localStorage` and somebody changes a format to keep credentials token or last opened product information - value exists so you assume that it is valid but runtime error will make you unhappy very soon. Sounds familiar, doesn't?
