@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode, { Decoder } from '../src'
+import Decode, { Decoder } from '../src/decode-json'
 import {
   OneOf,
   InField,
@@ -133,8 +133,10 @@ interface User {
 }
 
 test('Real world example', t => {
+  const timeOffset = new Date().getTimezoneOffset() * 60 * 1000 // minutes * 60sec
+
   const dateDecoder = Decode.oneOf([
-    Decode.int.map(timestamp => new Date(timestamp)),
+    Decode.int.map(timestamp => new Date(timestamp + timeOffset)),
     Decode.string.chain(str => {
       const date = new Date(str)
 
@@ -181,7 +183,7 @@ test('Real world example', t => {
       id: 'j10',
       age: 31,
       username: 'Walter',
-      last_activity: 1608764400000
+      last_activity: 1608768000000
     }).value,
     {
       id: 'j10',

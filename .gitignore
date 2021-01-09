@@ -7,9 +7,13 @@
 
 # testing
 /coverage
+/.nyc_output
 
 # production
-/build
+/lib
+/es
+/dist
+/types
 
 # misc
 .DS_Store

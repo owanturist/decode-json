@@ -322,22 +322,20 @@ class KeyValueDecoder<K, T> extends DecoderImpl<Array<[K, T]>> {
 
     const acc: Array<[K, T]> = []
 
-    for (const key in input) {
-      if (hasOwnProperty(key, input)) {
-        const keyResult = this.convertKey(key)
+    for (const key of Object.keys(input)) {
+      const keyResult = this.convertKey(key)
 
-        if (keyResult.error != null) {
-          return Left(FailureError(keyResult.error, key))
-        }
-
-        const itemResult = this.itemDecoder.decode(input[key])
-
-        if (itemResult.error != null) {
-          return Left(InFieldError(key, itemResult.error))
-        }
-
-        acc.push([keyResult.value, itemResult.value])
+      if (keyResult.error != null) {
+        return Left(FailureError(keyResult.error, key))
       }
+
+      const itemResult = this.itemDecoder.decode(input[key])
+
+      if (itemResult.error != null) {
+        return Left(InFieldError(key, itemResult.error))
+      }
+
+      acc.push([keyResult.value, itemResult.value])
     }
 
     return Right(acc)
@@ -356,16 +354,14 @@ class RecordDecoder<T> extends DecoderImpl<Record<string, T>> {
 
     const acc: Record<string, T> = {}
 
-    for (const key in input) {
-      if (hasOwnProperty(key, input)) {
-        const itemResult = this.itemDecoder.decode(input[key])
+    for (const key of Object.keys(input)) {
+      const itemResult = this.itemDecoder.decode(input[key])
 
-        if (itemResult.error != null) {
-          return Left(InFieldError(key, itemResult.error))
-        }
-
-        acc[key] = itemResult.value
+      if (itemResult.error != null) {
+        return Left(InFieldError(key, itemResult.error))
       }
+
+      acc[key] = itemResult.value
     }
 
     return Right(acc)
@@ -382,16 +378,14 @@ class ShapeDecoder<T> extends DecoderImpl<T> {
   protected run(input: unknown): DecodeResult<DecodeError, T> {
     const acc = {} as T
 
-    for (const key in this.schema) {
-      if (hasOwnProperty(key, this.schema)) {
-        const keyResult = this.schema[key].decode(input)
+    for (const key of Object.keys(this.schema)) {
+      const keyResult = this.schema[key as keyof T].decode(input)
 
-        if (keyResult.error != null) {
-          return keyResult
-        }
-
-        acc[key] = keyResult.value
+      if (keyResult.error != null) {
+        return keyResult
       }
+
+      acc[key as keyof T] = keyResult.value
     }
 
     return Right(acc)
@@ -754,7 +748,7 @@ const int: Decoder<number> = new PrimitiveDecoder(ExpectIntError, isInteger)
 
 const float: Decoder<number> = new PrimitiveDecoder(ExpectFloatError, isNumber)
 
-function fail(message: string): Decoder<never> {
+function fail<T = never>(message: string): Decoder<T> {
   return new FailDecoder(message)
 }
 

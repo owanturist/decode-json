@@ -2,17 +2,53 @@
   "name": "decode-json",
   "version": "1.0.0",
   "description": "Convert unknown JSON values to TypeScript safe structures",
-  "main": "index.js",
-  "repository": "git@github.com:owanturist/decode-json.git",
-  "author": "Anton Ovechkin <owanturist@gmail.com>",
   "license": "BSD-3-Clause",
+  "homepage": "https://github.com/owanturist/decode-json",
+  "repository": "git@github.com:owanturist/decode-json.git",
+  "issues": "https://github.com/owanturist/decode-json/issues",
+  "keywords": [
+    "decoding",
+    "json",
+    "typescript",
+    "elm"
+  ],
+  "author": "Anton Ovechkin <owanturist@gmail.com> (https://github.com/owanturist)",
+  "types": "types/decode-json.d.ts",
+  "source": "src/decode-json.js",
+  "main": "lib/decode-json.js",
+  "unpkg": "dist/decode-json.min.js",
+  "module": "es/decode-json.js",
+  "exports": {
+    ".": {
+      "import": "./es/decode-json.js",
+      "require": "./lib/decode-json.js",
+      "node": "./lib/decode-json.js",
+      "browser": "./es/decode-json.mjs",
+      "default": "./lib/decode-json.js"
+    },
+    "./error-to-human-readable": {
+      "import": "./es/error-to-human-readable.js",
+      "require": "./lib/error-to-human-readable.js",
+      "node": "./lib/error-to-human-readable.js",
+      "browser": "./es/error-to-human-readable.mjs",
+      "default": "./lib/error-to-human-readable.js"
+    }
+  },
+  "files": [
+    "dist",
+    "lib",
+    "es",
+    "src",
+    "types"
+  ],
   "scripts": {
-    "clean": "rm -rf ./build",
+    "clean": "rm -rf ./dist ./es ./lib ./types",
     "prebuild": "npm run clean",
-    "postbuild": "cp package.json ./build & cp README.md ./build",
-    "build": "tsc -p tsconfig.prod.json",
+    "build": "rollup --config",
     "test": "ava",
     "test:watch": "npm test -- --watch",
+    "test:coverage": "nyc ava",
+    "test:report": "nyc report --reporter=text-lcov | coveralls",
     "lint": "eslint . --config=.eslintrc.prod.json --ext=js,ts",
     "prettify": "prettier . --write",
     "typecheck": "tsc -p tsconfig.json --noEmit"
@@ -20,8 +56,8 @@
   "husky": {
     "hooks": {
       "prepare-commit-msg": "./scripts/git-commit-message.sh $HUSKY_GIT_PARAMS",
-      "pre-commit": "npm run typecheck && lint-staged",
-      "pre-push": "npm run test"
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run typecheck && npm run test && package-check"
     }
   },
   "lint-staged": {
@@ -34,17 +70,25 @@
   },
   "devDependencies": {
     "@ava/typescript": "^1.1.1",
-    "@typescript-eslint/eslint-plugin": "^4.11.0",
-    "@typescript-eslint/parser": "^4.11.0",
-    "ava": "^3.14.0",
-    "eslint": "^7.16.0",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "@skypack/package-check": "^0.2.2",
+    "@typescript-eslint/eslint-plugin": "^4.12.0",
+    "@typescript-eslint/parser": "^4.12.0",
+    "ava": "^3.15.0",
+    "coveralls": "^3.1.0",
+    "eslint": "^7.17.0",
     "eslint-config-prettier": "^7.1.0",
     "eslint-plugin-ava": "^11.0.0",
-    "eslint-plugin-prettier": "^3.3.0",
-    "husky": "^4.3.6",
+    "eslint-plugin-prettier": "^3.3.1",
+    "husky": "^4.3.7",
     "lint-staged": "^10.5.3",
+    "nyc": "^15.1.0",
     "prettier": "^2.2.1",
+    "rollup": "^2.36.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "rollup-plugin-typescript2": "^0.29.0",
     "ts-node": "^9.1.1",
+    "ts-transformer-minify-privates": "^0.3.0",
     "typescript": "^4.1.3"
   }
 }
