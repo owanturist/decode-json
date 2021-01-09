@@ -95,21 +95,20 @@ export default [
   ...[
     {
       name: 'Decode',
-      input: 'src/decode-json.ts',
-      output: 'dist/decode-json.js'
+      input: 'src/decode-json.ts'
     },
     {
       name: 'errorToHumanReadable',
-      input: 'src/error-to-human-readable.ts',
-      output: 'dist/error-to-human-readable.js'
+      input: 'src/error-to-human-readable.ts'
     }
   ].map(entry => ({
     input: entry.input,
     output: {
-      file: entry.output,
+      dir: 'dist/',
       format: 'umd',
       indent: false,
-      name: entry.name
+      name: entry.name,
+      entryFileNames: '[name].js'
     },
     plugins: [
       nodeResolve({ extensions }),
@@ -124,22 +123,21 @@ export default [
   ...[
     {
       name: 'Decode',
-      input: 'src/decode-json.ts',
-      output: 'dist/decode-json.min.js'
+      input: 'src/decode-json.ts'
     },
     {
       name: 'errorToHumanReadable',
-      input: 'src/error-to-human-readable.ts',
-      output: 'dist/error-to-human-readable.min.js'
+      input: 'src/error-to-human-readable.ts'
     }
   ].map(entry => ({
     input: entry.input,
     output: {
-      file: entry.output,
+      dir: 'dist/',
       format: 'umd',
       indent: false,
       name: entry.name,
-      sourcemap: true
+      sourcemap: true,
+      entryFileNames: '[name].min.js'
     },
     plugins: [
       nodeResolve({ extensions }),
