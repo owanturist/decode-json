@@ -1,4 +1,4 @@
-import type { DecodeJsonError, DecodeError } from '../src/decode-json'
+import type { DecodeJsonError, DecodeError } from '../src'
 
 export const InvalidJson = (
   error: SyntaxError,

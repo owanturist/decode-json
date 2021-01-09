@@ -23,6 +23,16 @@ npm install decode-json --save
 yarn install decode-json
 ```
 
+```ts
+// with skypack
+import Decode, { Decoder } from 'https://cdn.skypack.dev/decode-json'
+import errorToHumanReadable from 'https://cdn.skypack.dev/decode-json/error-to-human-readable'
+
+// minifield version
+import Decode, { Decoder } from 'https://cdn.skypack.dev/decode-json?min'
+import errorToHumanReadable from 'https://cdn.skypack.dev/decode-json/error-to-human-readable?min'
+```
+
 ## Example
 
 Let assume you are building a Star Wars fan wep application and you'd like to request Luke Skywalker's data from [swapi.dev/api/people/1](https://swapi.dev/api/people/1). You will get something like that:

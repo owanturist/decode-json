@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import Decode from '../src/decode-json'
+import Decode from '../src'
 import { InvalidJson, InField, RuntimeException } from './error'
 
 test('Decoder.decodeJSON()', t => {

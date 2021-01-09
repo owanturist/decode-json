@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode from '../src/decode-json'
+import Decode from '../src'
 import { ExpectExact, InField, AtIndex, OneOf, ExpectString } from './error'
 
 interface Currency {

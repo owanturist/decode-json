@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode from '../src/decode-json'
+import Decode from '../src'
 import { Optional, InField, AtIndex, ExpectFloat } from './error'
 
 test('Decode.float', t => {

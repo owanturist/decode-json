@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode from '../src/decode-json'
+import Decode from '../src'
 import { Failure } from './error'
 
 test('Decode.succeed()', t => {

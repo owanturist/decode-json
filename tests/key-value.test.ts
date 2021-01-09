@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode, { DecodeResult } from '../src/decode-json'
+import Decode, { DecodeResult } from '../src'
 import {
   Optional,
   InField,
