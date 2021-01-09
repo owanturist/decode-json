@@ -13,9 +13,8 @@
     "elm"
   ],
   "author": "Anton Ovechkin <owanturist@gmail.com> (https://github.com/owanturist)",
-  "types": "types",
-  "source": "src",
-  "main": "lib",
+  "types": "types/decode-json.d.ts",
+  "main": "lib/decode-json.js",
   "unpkg": "dist",
   "module": "es",
   "exports": {
@@ -32,6 +31,10 @@
     "src",
     "types"
   ],
+  "directories": {
+    "lib": "src",
+    "test": "tests"
+  },
   "scripts": {
     "clean": "rm -rf ./dist ./es ./lib ./types",
     "prebuild": "npm run clean",

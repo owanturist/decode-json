@@ -2,7 +2,7 @@
 
 import test from 'ava'
 
-import Decode, { Decoder } from '../src'
+import Decode, { Decoder } from '../src/decode-json'
 import {
   InField,
   RequiredField,
