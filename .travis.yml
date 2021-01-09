@@ -6,4 +6,5 @@ script:
   - yarn typecheck
   - yarn package-check
   - yarn build
-  - yarn test
+  - yarn test:coverage
+  - yarn test:report
