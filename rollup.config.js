@@ -73,7 +73,8 @@ export default [
       dir: 'es/',
       format: 'es',
       indent: false,
-      entryFileNames: '[name].mjs'
+      entryFileNames: '[name].mjs',
+      sourcemap: true
     },
     plugins: [
       nodeResolve({ extensions }),
@@ -137,7 +138,8 @@ export default [
       file: entry.output,
       format: 'umd',
       indent: false,
-      name: entry.name
+      name: entry.name,
+      sourcemap: true
     },
     plugins: [
       nodeResolve({ extensions }),
