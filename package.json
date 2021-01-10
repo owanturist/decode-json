@@ -36,6 +36,7 @@
     "lib",
     "es",
     "src",
+    "tests",
     "types"
   ],
   "directories": {
