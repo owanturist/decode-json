@@ -3,10 +3,7 @@ import typescript from 'rollup-plugin-typescript2'
 import minifyPrivatesTransformer from 'ts-transformer-minify-privates'
 import { terser } from 'rollup-plugin-terser'
 
-const input = {
-  'decode-json': 'src/decode-json.ts',
-  'error-to-human-readable': 'src/error-to-human-readable.ts'
-}
+const inputES = ['src/decode-json.ts', 'src/error-to-human-readable.ts']
 const extensions = ['.ts']
 const terserOptions = {
   mangle: {
@@ -28,13 +25,13 @@ const renamePrivates = service => ({
 export default [
   // CommonJS
   {
-    input,
+    input: 'src/index.ts',
     output: {
       dir: 'lib/',
       format: 'cjs',
       indent: false,
       entryFileNames: '[name].js',
-      exports: 'default'
+      exports: 'auto'
     },
     plugins: [
       nodeResolve({ extensions }),
@@ -53,7 +50,7 @@ export default [
 
   // ES
   {
-    input,
+    input: inputES,
     output: {
       dir: 'es/',
       format: 'es',
@@ -68,12 +65,13 @@ export default [
 
   // ES for Browsers
   {
-    input,
+    input: inputES,
     output: {
       dir: 'es/',
       format: 'es',
       indent: false,
-      entryFileNames: '[name].mjs'
+      entryFileNames: '[name].mjs',
+      sourcemap: true
     },
     plugins: [
       nodeResolve({ extensions }),
@@ -94,21 +92,20 @@ export default [
   ...[
     {
       name: 'Decode',
-      input: 'src/decode-json.ts',
-      output: 'dist/decode-json.js'
+      input: 'src/decode-json.ts'
     },
     {
       name: 'errorToHumanReadable',
-      input: 'src/error-to-human-readable.ts',
-      output: 'dist/error-to-human-readable.js'
+      input: 'src/error-to-human-readable.ts'
     }
   ].map(entry => ({
     input: entry.input,
     output: {
-      file: entry.output,
+      dir: 'dist/',
       format: 'umd',
       indent: false,
-      name: entry.name
+      name: entry.name,
+      entryFileNames: '[name].js'
     },
     plugins: [
       nodeResolve({ extensions }),
@@ -123,21 +120,21 @@ export default [
   ...[
     {
       name: 'Decode',
-      input: 'src/decode-json.ts',
-      output: 'dist/decode-json.min.js'
+      input: 'src/decode-json.ts'
     },
     {
       name: 'errorToHumanReadable',
-      input: 'src/error-to-human-readable.ts',
-      output: 'dist/error-to-human-readable.min.js'
+      input: 'src/error-to-human-readable.ts'
     }
   ].map(entry => ({
     input: entry.input,
     output: {
-      file: entry.output,
+      dir: 'dist/',
       format: 'umd',
       indent: false,
-      name: entry.name
+      name: entry.name,
+      sourcemap: true,
+      entryFileNames: '[name].min.js'
     },
     plugins: [
       nodeResolve({ extensions }),

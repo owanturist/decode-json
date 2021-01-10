@@ -13,23 +13,20 @@
     "elm"
   ],
   "author": "Anton Ovechkin <owanturist@gmail.com> (https://github.com/owanturist)",
-  "types": "types/decode-json.d.ts",
-  "source": "src/decode-json.js",
-  "main": "lib/decode-json.js",
-  "unpkg": "dist/decode-json.min.js",
-  "module": "es/decode-json.js",
+  "types": "types/index.d.ts",
+  "main": "lib/index.js",
+  "unpkg": "dist",
+  "module": "es",
   "exports": {
     ".": {
       "import": "./es/decode-json.js",
       "require": "./lib/decode-json.js",
-      "node": "./lib/decode-json.js",
       "browser": "./es/decode-json.mjs",
       "default": "./lib/decode-json.js"
     },
     "./error-to-human-readable": {
       "import": "./es/error-to-human-readable.js",
       "require": "./lib/error-to-human-readable.js",
-      "node": "./lib/error-to-human-readable.js",
       "browser": "./es/error-to-human-readable.mjs",
       "default": "./lib/error-to-human-readable.js"
     }
@@ -39,12 +36,19 @@
     "lib",
     "es",
     "src",
+    "tests",
     "types"
   ],
+  "directories": {
+    "lib": "src",
+    "test": "tests"
+  },
   "scripts": {
     "clean": "rm -rf ./dist ./es ./lib ./types",
     "prebuild": "npm run clean",
     "build": "rollup --config",
+    "prepublish": "npm run build",
+    "publish": "git push --tags && npm publish",
     "test": "ava",
     "test:watch": "npm test -- --watch",
     "test:coverage": "nyc ava",
@@ -56,8 +60,7 @@
   "husky": {
     "hooks": {
       "prepare-commit-msg": "./scripts/git-commit-message.sh $HUSKY_GIT_PARAMS",
-      "pre-commit": "lint-staged",
-      "pre-push": "npm run typecheck && npm run test && package-check"
+      "pre-commit": "lint-staged"
     }
   },
   "lint-staged": {
@@ -90,5 +93,6 @@
     "ts-node": "^9.1.1",
     "ts-transformer-minify-privates": "^0.3.0",
     "typescript": "^4.1.3"
-  }
+  },
+  "sideEffects": false
 }
