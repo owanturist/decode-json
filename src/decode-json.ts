@@ -704,9 +704,9 @@ class PathDecoder<X extends boolean> implements DecodePath<X> {
   }
 
   public oneOf<T>(
-    options: Array<Decoder<T>>
+    ...args: [Array<Decoder<T>>] | Array<Decoder<T>>
   ): Decoder<X extends true ? T : null | T> {
-    return this.of(oneOf(options))
+    return this.of(oneOfHelp(args))
   }
 
   public field(
@@ -947,11 +947,28 @@ const keyValue: MakeKeyValue<true> = <K, T>(
 
 // O N E   O F
 
-type MakeOneOf<X extends boolean> = <T>(
-  options: Array<Decoder<T>>
-) => Decoder<X extends true ? T : null | T>
+interface MakeOneOf<X extends boolean> {
+  <T>(options: Array<Decoder<T>>): Decoder<X extends true ? T : null | T>
+  <T>(
+    first: Decoder<T>,
+    second: Decoder<T>,
+    ...options: Array<Decoder<T>>
+  ): Decoder<X extends true ? T : null | T>
+}
 
-const oneOf: MakeOneOf<true> = options => new OneOfDecoder(options)
+const oneOfHelp = <T>(
+  args: [Array<Decoder<T>>] | Array<Decoder<T>>
+): Decoder<T> => {
+  if (args.length === 1 && isArray(args[0])) {
+    return new OneOfDecoder(args[0])
+  }
+
+  return new OneOfDecoder(args as Array<Decoder<T>>)
+}
+
+const oneOf: MakeOneOf<true> = <T>(
+  ...args: [Array<Decoder<T>>] | Array<Decoder<T>>
+) => oneOfHelp(args)
 
 // L A Z Y
 
