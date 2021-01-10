@@ -125,6 +125,25 @@ test('Decode.index().oneOf()', t => {
   )
 })
 
+test('Spread arguments', t => {
+  const _0 = Decode.oneOf(
+    Decode.string,
+    Decode.boolean.map(x => (x ? 'yes' : 'no'))
+  )
+
+  t.is(_0.decode('hi').value, 'hi')
+  t.is(_0.decode(false).value, 'no')
+  t.is(_0.decode(true).value, 'yes')
+
+  const _1 = Decode.oneOf(
+    Decode.string,
+    Decode.boolean.map(x => (x ? 'yes' : 'no')),
+    Decode.int.map(x => x.toFixed(2))
+  )
+
+  t.is(_1.decode(123).value, '123.00')
+})
+
 interface User {
   id: string
   age: number
