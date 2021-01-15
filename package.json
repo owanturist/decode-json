@@ -1,6 +1,6 @@
 {
   "name": "decode-json",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Convert unknown JSON values to TypeScript safe structures",
   "license": "BSD-3-Clause",
   "homepage": "https://github.com/owanturist/decode-json",

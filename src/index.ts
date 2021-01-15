@@ -6,6 +6,6 @@ export type {
   DecodeError,
   DecodeJsonError,
   DecodeResult
-} from 'decode-json'
-export { default } from 'decode-json'
-export { default as errorToHumanReadable } from 'error-to-human-readable'
+} from './decode-json'
+export { default } from './decode-json'
+export { default as errorToHumanReadable } from './error-to-human-readable'
